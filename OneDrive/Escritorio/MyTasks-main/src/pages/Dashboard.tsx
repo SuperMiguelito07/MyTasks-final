@@ -8,9 +8,11 @@ import { Task } from '../supabase';
 import MobileNav from '../components/MobileNav';
 import NotificationCenter from '../components/NotificationCenter';
 import NotificationSettings from '../components/NotificationSettings';
+import KanbanColumn from '../components/KanbanColumn';
+import '../styles/modern.css';
 
 const Dashboard: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const { 
     projects, 
     currentProject, 
@@ -23,7 +25,7 @@ const Dashboard: React.FC = () => {
     moveTask
   } = useProjects();
   // Usar los hooks de notificaciones y preferencias
-  const { notifications, fetchNotifications, addNotification } = useNotifications();
+  const { notifications, fetchNotifications } = useNotifications();
   const { preferences } = useUserPreferences();
 
   // Estados para formularios
@@ -117,16 +119,8 @@ const Dashboard: React.FC = () => {
       setNewTaskDueDate('');
       setShowNewTask(false);
       
-      // Crear notificación para la nueva tarea
-      await addNotification(
-        `Nueva tarea creada: ${newTaskTitle} en el proyecto ${currentProject.name}`,
-        {
-          sendEmail: true,
-          emailSubject: 'Nueva tarea creada en MyTask',
-          relatedTaskId: newTask.id,
-          relatedProjectId: currentProject.id
-        }
-      );
+      // Ya no necesitamos esto porque el SMS se envía desde ProjectContext
+      // cuando se crea una tarea
     }
   };
 
@@ -134,18 +128,8 @@ const Dashboard: React.FC = () => {
   const handleMoveTask = async (taskId: string, newStatus: 'To Do' | 'Doing' | 'Done') => {
     const updatedTask = await moveTask(taskId, newStatus);
     
-    // Si la tarea se ha movido a "Done", crear una notificación
-    if (updatedTask && newStatus === 'Done' && currentProject) {
-      await addNotification(
-        `Tarea completada: ${updatedTask.title} en el proyecto ${currentProject.name}`,
-        {
-          sendEmail: true,
-          emailSubject: 'Tarea completada en MyTask',
-          relatedTaskId: updatedTask.id,
-          relatedProjectId: currentProject.id
-        }
-      );
-    }
+    // Ya no necesitamos esto porque el SMS se envía desde ProjectContext
+    // cuando se marca una tarea como completada
   };
 
   // Manejar la eliminación de una tarea
@@ -299,77 +283,31 @@ const Dashboard: React.FC = () => {
               )}
 
               <div className="kanban-board">
-                <div className="kanban-column">
-                  <h3>To Do</h3>
-                  <div className="tasks-container">
-                    {todoTasks.length === 0 ? (
-                      <p className="no-tasks">No hi ha tasques pendents</p>
-                    ) : (
-                      todoTasks.map(task => (
-                        <div key={task.id} className="task-card">
-                          <h4>{task.title}</h4>
-                          <p>{task.description}</p>
-                          {task.due_date && (
-                            <p className="due-date">Venciment: {new Date(task.due_date).toLocaleDateString()}</p>
-                          )}
-                          <div className="task-actions">
-                            <button onClick={() => handleMoveTask(task.id, 'Doing')}>Moure a Doing</button>
-                            <button onClick={() => handleDeleteTask(task.id)}>Eliminar</button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                <KanbanColumn
+                  title="Per Fer"
+                  status="To Do"
+                  tasks={todoTasks}
+                  onMoveTask={handleMoveTask}
+                  onDeleteTask={handleDeleteTask}
+                />
 
-                <div className="kanban-column">
-                  <h3>Doing</h3>
-                  <div className="tasks-container">
-                    {doingTasks.length === 0 ? (
-                      <p className="no-tasks">No hi ha tasques en progrés</p>
-                    ) : (
-                      doingTasks.map(task => (
-                        <div key={task.id} className="task-card">
-                          <h4>{task.title}</h4>
-                          <p>{task.description}</p>
-                          {task.due_date && (
-                            <p className="due-date">Venciment: {new Date(task.due_date).toLocaleDateString()}</p>
-                          )}
-                          <div className="task-actions">
-                            <button onClick={() => handleMoveTask(task.id, 'To Do')}>Moure a To Do</button>
-                            <button onClick={() => handleMoveTask(task.id, 'Done')}>Moure a Done</button>
-                            <button onClick={() => handleDeleteTask(task.id)}>Eliminar</button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                <KanbanColumn
+                  title="En Progrés"
+                  status="Doing"
+                  tasks={doingTasks}
+                  onMoveTask={handleMoveTask}
+                  onDeleteTask={handleDeleteTask}
+                />
 
-                <div className="kanban-column">
-                  <h3>Done</h3>
-                  <div className="tasks-container">
-                    {doneTasks.length === 0 ? (
-                      <p className="no-tasks">No hi ha tasques completades</p>
-                    ) : (
-                      doneTasks.map(task => (
-                        <div key={task.id} className="task-card">
-                          <h4>{task.title}</h4>
-                          <p>{task.description}</p>
-                          {task.due_date && (
-                            <p className="due-date">Venciment: {new Date(task.due_date).toLocaleDateString()}</p>
-                          )}
-                          <div className="task-actions">
-                            <button onClick={() => handleMoveTask(task.id, 'Doing')}>Moure a Doing</button>
-                            <button onClick={() => handleDeleteTask(task.id)}>Eliminar</button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                <KanbanColumn
+                  title="Completades"
+                  status="Done"
+                  tasks={doneTasks}
+                  onMoveTask={handleMoveTask}
+                  onDeleteTask={handleDeleteTask}
+                />
               </div>
-            </>
+            </>            
           ) : (
             <div className="no-project-selected">
               <h2>Selecciona un projecte o crea un de nou</h2>

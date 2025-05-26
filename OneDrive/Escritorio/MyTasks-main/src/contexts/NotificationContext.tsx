@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useAuth } from './AuthContext';
 import { useUserPreferences } from './UserPreferencesContext';
 import { Notification } from '../supabase';
-import { getUserNotifications, markNotificationAsRead, createNotification } from '../services/notificationService';
+import { supabase } from '../supabase';
 
 // Tipo para el contexto de notificaciones
 type NotificationContextType = {
@@ -12,12 +12,7 @@ type NotificationContextType = {
   error: string | null;
   fetchNotifications: () => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
-  addNotification: (message: string, options?: {
-    sendEmail?: boolean;
-    emailSubject?: string;
-    relatedTaskId?: string;
-    relatedProjectId?: string;
-  }) => Promise<Notification | null>;
+  deleteNotification: (notificationId: string) => Promise<void>;
 };
 
 // Crear el contexto
@@ -44,13 +39,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     setError(null);
     
     try {
-      const { notifications, error } = await getUserNotifications(user.id);
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error al obtener notificaciones:', error);
         setError('Error al obtener notificaciones');
       } else {
-        setNotifications(notifications);
+        setNotifications(data || []);
       }
     } catch (err) {
       console.error('Error inesperado al obtener notificaciones:', err);
@@ -65,11 +64,14 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     if (!user) return;
     
     try {
-      const { success, error } = await markNotificationAsRead(notificationId);
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId);
       
       if (error) {
         console.error('Error al marcar notificación como leída:', error);
-      } else if (success) {
+      } else {
         // Actualizar la lista de notificaciones
         setNotifications(prevNotifications => 
           prevNotifications.map(n => 
@@ -94,44 +96,28 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   // Calcular el número de notificaciones no leídas
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Función para añadir una nueva notificación
-  const addNotification = async (message: string, options?: {
-    sendEmail?: boolean;
-    emailSubject?: string;
-    relatedTaskId?: string;
-    relatedProjectId?: string;
-  }): Promise<Notification | null> => {
-    if (!user) return null;
+
+
+  // Función para eliminar una notificación
+  const deleteNotification = async (notificationId: string) => {
+    if (!user) return;
     
     try {
-      // Usar las preferencias del usuario para determinar si enviar email
-      const shouldSendEmail = options?.sendEmail && preferences.emailNotifications;
-      
-      // Crear la notificación
-      const { success, notification, error } = await createNotification(
-        user.id,
-        message,
-        {
-          ...options,
-          sendEmail: shouldSendEmail
-        }
-      );
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
       
       if (error) {
-        console.error('Error al crear notificación:', error);
-        return null;
+        console.error('Error al eliminar notificación:', error);
+      } else {
+        // Actualizar la lista de notificaciones
+        setNotifications(prevNotifications => 
+          prevNotifications.filter(n => n.id !== notificationId)
+        );
       }
-      
-      if (success && notification) {
-        // Añadir la nueva notificación a la lista
-        setNotifications(prev => [notification, ...prev]);
-        return notification;
-      }
-      
-      return null;
     } catch (err) {
-      console.error('Error inesperado al crear notificación:', err);
-      return null;
+      console.error('Error inesperado al eliminar notificación:', err);
     }
   };
 
@@ -143,7 +129,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     error,
     fetchNotifications,
     markAsRead,
-    addNotification,
+    deleteNotification,
   };
 
   return (

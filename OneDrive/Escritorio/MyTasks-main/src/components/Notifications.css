@@ -80,6 +80,10 @@
   border-bottom: 1px solid #e9ecef;
   cursor: pointer;
   transition: background-color 0.2s;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .notification-item:hover {
@@ -88,6 +92,10 @@
 
 .notification-item.unread {
   background-color: #e3f2fd;
+}
+
+.notification-content {
+  flex: 1;
 }
 
 .notification-content p {
@@ -169,6 +177,31 @@
 .save-button:disabled {
   background-color: #6c757d;
   cursor: not-allowed;
+}
+
+/* Estilos para el botón de eliminar notificación */
+.delete-notification-button {
+  background: none;
+  border: none;
+  color: #dc3545;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 5px;
+  margin-left: 10px;
+  opacity: 0.7;
+  transition: opacity 0.2s, transform 0.2s;
+  border-radius: 50%;
+  height: 25px;
+  width: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-notification-button:hover {
+  opacity: 1;
+  background-color: rgba(220, 53, 69, 0.1);
+  transform: scale(1.1);
 }
 
 .success-message {

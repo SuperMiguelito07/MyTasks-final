@@ -3,7 +3,7 @@ import { useNotifications } from '../contexts/NotificationContext';
 import './Notifications.css';
 
 const NotificationCenter: React.FC = () => {
-  const { notifications, unreadCount, loading, markAsRead } = useNotifications();
+  const { notifications, unreadCount, loading, markAsRead, deleteNotification } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
 
   // Formatear la fecha para mostrarla de forma amigable
@@ -21,6 +21,12 @@ const NotificationCenter: React.FC = () => {
   // Manejar el clic en una notificación
   const handleNotificationClick = (notificationId: string) => {
     markAsRead(notificationId);
+  };
+
+  // Manejar la eliminación de una notificación
+  const handleDeleteNotification = (e: React.MouseEvent, notificationId: string) => {
+    e.stopPropagation(); // Evitar que se propague al elemento padre
+    deleteNotification(notificationId);
   };
 
   return (
@@ -65,6 +71,13 @@ const NotificationCenter: React.FC = () => {
                       {formatDate(notification.created_at)}
                     </span>
                   </div>
+                  <button 
+                    className="delete-notification-button"
+                    onClick={(e) => handleDeleteNotification(e, notification.id)}
+                    title="Eliminar notificación"
+                  >
+                    ✕
+                  </button>
                 </div>
               ))
             )}
