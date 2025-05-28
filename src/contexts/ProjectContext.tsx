@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { Project, Task } from '../supabase';
 import { projectService, taskService } from '../services/supabaseService';
 import { useAuth } from './AuthContext';

@@ -85,6 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Limpiar el temporizador cuando el componente se desmonte
     return () => clearTimeout(timeoutId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Eliminada la dependencia [loading] para evitar bucles
 
   // Función para iniciar sesión optimizada con useCallback
