@@ -88,6 +88,7 @@ let twilioClient: TwilioLike | null = null;
 const useRealClient = true; // Siempre usamos el cliente real para enviar SMS
 
 // Número de teléfono verificado en la cuenta de Twilio
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const VERIFIED_PHONE_NUMBER = '+34669472052'; // Solo este número está verificado
 
 // Inicializar el cliente de Twilio
