@@ -41,5 +41,4 @@ asset-manifest.json
 OneDrive/
 setup-*.ps1
 complete_database_setup.sql
-netlify.toml
 
