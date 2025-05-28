@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { Project, Task } from '../supabase';
 import { projectService, taskService } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
@@ -40,8 +40,22 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Función para cargar tareas envuelta en useCallback
+  // Cache para almacenar las tareas por proyecto y evitar llamadas innecesarias a la API
+  const tasksCache = useRef<Record<string, { tasks: Task[], timestamp: number }>>({});
+  
+  // Función para cargar tareas envuelta en useCallback con soporte de caché
   const fetchTasks = useCallback(async (projectId: string) => {
+    // Verificar si tenemos las tareas en caché y si son recientes (menos de 30 segundos)
+    const cachedData = tasksCache.current[projectId];
+    const now = Date.now();
+    
+    if (cachedData && (now - cachedData.timestamp < 30000)) {
+      // Usar datos en caché si son recientes
+      console.log('Usando tareas en caché para el proyecto:', projectId);
+      setTasks(cachedData.tasks);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -52,7 +66,12 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
         console.error('Error al cargar tareas:', error);
         setError('No s\'han pogut carregar les tasques');
       } else {
+        // Actualizar el estado y la caché
         setTasks(tasks);
+        tasksCache.current[projectId] = {
+          tasks,
+          timestamp: now
+        };
       }
     } catch (err) {
       console.error('Error inesperado al cargar tareas:', err);
@@ -235,8 +254,8 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
       // Actualizar la lista de tareas
       setTasks(prevTasks => [...prevTasks, newTask!]);
       
-      // Enviar SMS para la nueva tarea
-      console.log('Enviando SMS para la nueva tarea:', newTask);
+      // Enviar SMS para la nueva tarea automáticamente
+      console.log('Enviando SMS automáticamente para la nueva tarea:', newTask);
       try {
         // Obtener el nombre del proyecto
         let projectName = 'un proyecto';
@@ -244,13 +263,18 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
           projectName = currentProject.name;
         }
         
+        // Enviar SMS de notificación de tarea creada
         const smsResult = await sendTaskCreatedSMS(
           user!.id,
           newTask!.title,
           projectName
         );
         
-        console.log('Resultado del SMS:', smsResult);
+        if (smsResult.success) {
+          console.log('SMS enviado correctamente para la tarea:', newTask!.title);
+        } else {
+          console.warn('No se pudo enviar el SMS:', smsResult.error);
+        }
       } catch (smsError) {
         console.error('Error al enviar SMS:', smsError);
         // No fallamos la creación de la tarea si falla el envío del SMS
@@ -272,6 +296,8 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     setError(null);
     
     try {
+      // Obtener la tarea actual antes de actualizarla para comparar estados
+      const currentTask = tasks.find(t => t.id === taskId);
       const { task: updatedTask, error } = await taskService.updateTask(taskId, updates);
       
       if (error) {
@@ -284,6 +310,36 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
       setTasks(prevTasks => 
         prevTasks.map(t => t.id === taskId ? { ...t, ...updates } : t)
       );
+      
+      // Verificar si la tarea se ha marcado como completada
+      if (updates.status === 'Done' && currentTask?.status !== 'Done' && currentTask) {
+        console.log('Tarea marcada como completada, enviando SMS...');
+        try {
+          // Obtener el nombre del proyecto
+          let projectName = 'un proyecto';
+          if (currentProject) {
+            projectName = currentProject.name;
+          } else if (currentTask.project_id) {
+            // Intentar encontrar el proyecto en la lista de proyectos
+            const taskProject = projects.find(p => p.id === currentTask.project_id);
+            if (taskProject) {
+              projectName = taskProject.name;
+            }
+          }
+          
+          // Enviar SMS de tarea completada
+          const smsResult = await sendTaskCompletedSMS(
+            user!.id,
+            currentTask.title,
+            projectName
+          );
+          
+          console.log('Resultado del SMS de tarea completada:', smsResult);
+        } catch (smsError) {
+          console.error('Error al enviar SMS de tarea completada:', smsError);
+          // No fallamos la actualización de la tarea si falla el envío del SMS
+        }
+      }
       
       return updatedTask;
     } catch (err) {

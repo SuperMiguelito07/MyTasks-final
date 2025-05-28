@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -11,7 +11,8 @@ import NotificationSettings from '../components/NotificationSettings';
 import KanbanColumn from '../components/KanbanColumn';
 import '../styles/modern.css';
 
-const Dashboard: React.FC = () => {
+// Optimizar el componente Dashboard con React.memo para evitar renderizaciones innecesarias
+const Dashboard: React.FC = memo(function Dashboard() {
   const { user, loading, signOut } = useAuth();
   const { 
     projects, 
@@ -47,12 +48,18 @@ const Dashboard: React.FC = () => {
   // Detectar si estamos en un dispositivo móvil
   const [isMobile, setIsMobile] = useState(false);
   
+  // Función para manejar el cambio de tamaño de la ventana, optimizada con useCallback
+  const handleResize = useCallback(() => {
+    setIsMobile(window.innerWidth < 768);
+  }, []);
+  
+  // Función para verificar si el dispositivo es móvil
+  const checkIfMobile = useCallback(() => {
+    setIsMobile(window.innerWidth <= 768);
+  }, []);
+  
   // Efecto para detectar el tamaño de la pantalla
   useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
     // Comprobar al cargar
     checkIfMobile();
     
@@ -62,7 +69,7 @@ const Dashboard: React.FC = () => {
     return () => {
       window.removeEventListener('resize', checkIfMobile);
     };
-  }, []);
+  }, [checkIfMobile]);
   
   // Efecto para cargar notificaciones periódicamente
   useEffect(() => {
@@ -282,6 +289,8 @@ const Dashboard: React.FC = () => {
                 </form>
               )}
 
+
+              
               <div className="kanban-board">
                 <KanbanColumn
                   title="Per Fer"
@@ -318,6 +327,6 @@ const Dashboard: React.FC = () => {
       </div>
     </div>
   );
-};
+});
 
 export default Dashboard;

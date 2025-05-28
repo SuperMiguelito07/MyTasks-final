@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { User } from '../supabase';
 import { authService } from '../services/supabaseService';
 import { scheduleTaskReminders } from '../services/taskReminderService';
@@ -36,15 +36,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { user, error } = await authService.getCurrentUser();
         
         if (error) {
-          console.error('Error al obtener el usuario actual:', error);
+          // Solo registrar el error si no es un error común de sesión
+          if (!(error instanceof Error && error.message === 'Auth session missing!')) {
+            console.error('Error al obtener el usuario actual:', error);
+          }
           setUser(null);
           setError(null);
         } else if (user) {
-          console.log('Usuario autenticado:', user);
+          // Evitar log excesivo de objetos de usuario
           setUser(user);
           setError(null);
+          
+          // Iniciar el servicio de recordatorios de tareas (solo una vez)
+          try {
+            // Usar una variable global para evitar iniciar el servicio múltiples veces
+            const w = window as any;
+            if (!w.__taskRemindersInitialized) {
+              scheduleTaskReminders(user.id);
+              w.__taskRemindersInitialized = true;
+              console.log('Servicio de recordatorios de tareas iniciado para el usuario:', user.id);
+            }
+          } catch (reminderError) {
+            console.error('Error al iniciar el servicio de recordatorios:', reminderError);
+            // No fallamos la carga del usuario si falla el servicio de recordatorios
+          }
         } else {
-          console.log('No hay sesión activa, redirigiendo a autenticación');
           setUser(null);
           setError(null);
         }
@@ -60,19 +76,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Configurar un temporizador para redirigir si la carga tarda demasiado
     const timeoutId = setTimeout(() => {
       if (loading) {
-        console.log('La carga está tardando demasiado, estableciendo loading a false');
+        console.log('Tiempo de carga excedido, finalizando estado de carga');
         setLoading(false);
       }
-    }, 2000);
+    }, 5000); // Aumentado de 2000ms a 5000ms para dar más tiempo
 
     loadUser();
 
     // Limpiar el temporizador cuando el componente se desmonte
     return () => clearTimeout(timeoutId);
-  }, [loading]);
+  }, []); // Eliminada la dependencia [loading] para evitar bucles
 
-  // Función para iniciar sesión
-  const signIn = async (email: string, password: string) => {
+  // Función para iniciar sesión optimizada con useCallback
+  const signIn = useCallback(async (email: string, password: string) => {
     setLoading(true);
     setError(null);
     
@@ -92,10 +108,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Función para registrarse
-  const signUp = async (email: string, password: string, nom: string, phoneNumber?: string) => {
+  // Función para registrarse optimizada con useCallback
+  const signUp = useCallback(async (email: string, password: string, nom: string, phoneNumber?: string) => {
     setLoading(true);
     setError(null);
     
@@ -115,10 +131,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Función para cerrar sesión
-  const signOut = async () => {
+  // Función para cerrar sesión optimizada con useCallback
+  const signOut = useCallback(async () => {
     setLoading(true);
     
     try {
@@ -135,17 +151,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Valor del contexto
-  const value = {
+  // Valor del contexto memoizado para evitar renderizaciones innecesarias
+  const value = useMemo(() => ({
     user,
     loading,
     error,
     signIn,
     signUp,
     signOut,
-  };
+  }), [user, loading, error, signIn, signUp, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
