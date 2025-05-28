@@ -3,10 +3,17 @@
 import { supabase } from '../supabase';
 
 // Configuración del cliente de Twilio usando variables de entorno
-// Estas variables deben configurarse en el archivo .env.local
+// Estas variables deben configurarse en el archivo .env.local y en Netlify
 const accountSid = process.env.REACT_APP_TWILIO_ACCOUNT_SID;
 const authToken = process.env.REACT_APP_TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.REACT_APP_TWILIO_PHONE_NUMBER;
+
+// Imprimir las variables de entorno para depuración (solo los primeros caracteres por seguridad)
+console.log('Variables de entorno de Twilio disponibles:', {
+  accountSid: accountSid ? `${accountSid.substring(0, 5)}...` : 'no disponible',
+  authToken: authToken ? `${authToken.substring(0, 3)}...` : 'no disponible',
+  twilioPhoneNumber: twilioPhoneNumber || 'no disponible'
+});
 
 // Interfaz para el cliente de Twilio
 interface TwilioLike {
@@ -26,7 +33,9 @@ const createTwilioClient = () => {
           const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
           
           // Crear las credenciales en formato Base64
-          const auth = btoa(`${accountSid}:${authToken}`);
+          // Usar una función compatible con todos los navegadores
+          const auth = window.btoa(`${accountSid}:${authToken}`);
+          console.log('Autenticación generada (primeros caracteres):', auth.substring(0, 10) + '...');
           
           // Crear el cuerpo de la solicitud en formato FormData
           const formData = new URLSearchParams();
@@ -111,58 +120,75 @@ export const sendSMS = async (
   
   console.log(`Enviando SMS a ${targetPhoneNumber}: ${message}`);
   
-  // Verificar que el cliente de Twilio esté inicializado
-  if (!twilioClient) {
-    // Reinicializar el cliente si es necesario
-    if (useRealClient && accountSid && authToken) {
-      twilioClient = createTwilioClient();
-    } else {
-      twilioClient = simulatedTwilioClient;
-    }
+  // Verificar que tenemos todas las credenciales necesarias
+  if (!accountSid || !authToken || !twilioPhoneNumber) {
+    console.error('Faltan credenciales de Twilio:', { 
+      accountSid: accountSid ? 'disponible' : 'no disponible', 
+      authToken: authToken ? 'disponible' : 'no disponible',
+      twilioPhoneNumber: twilioPhoneNumber || 'no disponible' 
+    });
+    return { 
+      success: false, 
+      error: { message: 'Faltan credenciales de Twilio. Verifica tu configuración en Netlify.' } 
+    };
   }
   
   try {
-    console.log(`Intentando enviar SMS a ${targetPhoneNumber}: ${message}`);
+    // Enviar SMS directamente usando la API REST de Twilio
+    console.log(`Intentando enviar SMS a ${targetPhoneNumber} con mensaje: ${message}`);
     
-    // Usar el cliente de Twilio inicializado
-    if (!twilioClient) {
-      return { success: false, error: 'Cliente de Twilio no inicializado' };
-    }
+    // Construir la URL de la API de Twilio
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
     
-    // Enviar el SMS usando el cliente de Twilio
-    const result = await twilioClient.messages.create({
-      body: message,
-      from: twilioPhoneNumber,
-      to: targetPhoneNumber
+    // Crear las credenciales en formato Base64
+    const auth = window.btoa(`${accountSid}:${authToken}`);
+    
+    // Crear el cuerpo de la solicitud en formato FormData
+    const formData = new URLSearchParams();
+    formData.append('To', targetPhoneNumber);
+    formData.append('From', twilioPhoneNumber);
+    formData.append('Body', message);
+    
+    // Realizar la solicitud HTTP
+    console.log('Enviando SMS real a través de la API de Twilio');
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: formData
     });
     
-    console.log('SMS enviado correctamente:', result);
-    
-    // Registrar el SMS enviado en la base de datos si estamos en producción
-    try {
-      // Comentado para evitar errores en desarrollo
-      /* 
-      const { error: logError } = await supabase
-        .from('sms_logs')
-        .insert({
-          user_id: targetPhoneNumber.startsWith('+34') ? 'usuario_local' : 'usuario_externo',
-          phone_number: targetPhoneNumber,
-          message: message,
-          status: 'enviado',
-          twilio_sid: result.sid
-        });
+    // Procesar la respuesta
+    if (response.ok) {
+      const data = await response.json();
+      console.log('SMS enviado correctamente:', data);
+      return { success: true, messageId: data.sid };
+    } else {
+      const errorText = await response.text();
+      console.error('Error al enviar SMS:', errorText);
       
-      if (logError) {
-        console.warn('Error al registrar el SMS en la base de datos:', logError);
+      try {
+        // Intentar parsear el error como JSON
+        const errorJson = JSON.parse(errorText);
+        return { 
+          success: false, 
+          error: { 
+            code: errorJson.code || 0, 
+            message: errorJson.message || 'Error desconocido al enviar SMS' 
+          } 
+        };
+      } catch (e) {
+        // Si no es JSON, usar el texto completo
+        return { 
+          success: false, 
+          error: { message: errorText } 
+        };
       }
-      */
-    } catch (logError) {
-      console.warn('Error al intentar registrar el SMS en la base de datos:', logError);
     }
-    
-    return { success: true, messageId: result.sid };
   } catch (error) {
-    console.error('Error al enviar SMS:', error);
+    console.error('Error inesperado al enviar SMS:', error);
     
     // Intentar analizar el mensaje de error
     let errorMessage = 'Error desconocido al enviar SMS';
