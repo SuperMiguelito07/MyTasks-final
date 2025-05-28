@@ -18,6 +18,7 @@
 .env.development.local
 .env.test.local
 .env.production.local
+.env.example
 
 # logs
 npm-debug.log*
@@ -38,4 +39,6 @@ asset-manifest.json
 
 # local files
 OneDrive/
+setup-*.ps1
+complete_database_setup.sql
 
