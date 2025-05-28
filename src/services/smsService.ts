@@ -82,17 +82,15 @@ const simulatedTwilioClient: TwilioLike = {
 };
 
 // Decidir qué cliente usar
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let twilioClient: TwilioLike | null = null;
 
 // Usar el cliente real si estamos en producción o si se ha solicitado explícitamente
 const useRealClient = true; // Siempre usamos el cliente real para enviar SMS
 
 // Número de teléfono verificado en la cuenta de Twilio
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const VERIFIED_PHONE_NUMBER = '+34669472052'; // Solo este número está verificado
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// Inicializar el cliente de Twilio
 if (useRealClient && accountSid && authToken) {
   console.log('Usando cliente real de Twilio con las credenciales configuradas');
   twilioClient = createTwilioClient();
@@ -111,78 +109,84 @@ export const sendSMS = async (
   const targetPhoneNumber = phoneNumber;
   
   console.log(`Enviando SMS a ${targetPhoneNumber}: ${message}`);
+  
+  // Verificar que el cliente de Twilio esté inicializado
+  if (!twilioClient) {
+    // Reinicializar el cliente si es necesario
+    if (useRealClient && accountSid && authToken) {
+      twilioClient = createTwilioClient();
+    } else {
+      twilioClient = simulatedTwilioClient;
+    }
+  }
+  
   try {
     console.log(`Intentando enviar SMS a ${targetPhoneNumber}: ${message}`);
     
-    // Verificar que tenemos todas las credenciales necesarias
-    if (!accountSid || !authToken || !twilioPhoneNumber) {
-      console.error('Faltan credenciales de Twilio:', { accountSid, twilioPhoneNumber });
-      return { 
-        success: false, 
-        error: { message: 'Faltan credenciales de Twilio. Verifica tu configuración.' } 
-      };
+    // Usar el cliente de Twilio inicializado
+    if (!twilioClient) {
+      return { success: false, error: 'Cliente de Twilio no inicializado' };
     }
     
-    // Construir la URL de la API de Twilio
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-    
-    // Crear las credenciales en formato Base64
-    const auth = btoa(`${accountSid}:${authToken}`);
-    
-    // Crear el cuerpo de la solicitud en formato FormData
-    const formData = new URLSearchParams();
-    formData.append('To', targetPhoneNumber);
-    formData.append('From', twilioPhoneNumber);
-    formData.append('Body', message);
-    
-    // Realizar la solicitud HTTP
-    console.log(`Enviando SMS real a través de la API de Twilio: ${message}`);
-    console.log(`De: ${twilioPhoneNumber} A: ${targetPhoneNumber}`);
-    console.log(`Credenciales: SID=${accountSid.substring(0, 10)}... Token=${authToken.substring(0, 5)}...`);
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData
+    // Enviar el SMS usando el cliente de Twilio
+    const result = await twilioClient.messages.create({
+      body: message,
+      from: twilioPhoneNumber,
+      to: targetPhoneNumber
     });
     
-    // Procesar la respuesta
-    if (response.ok) {
-      const data = await response.json();
-      console.log('SMS enviado correctamente:', data);
-      return { success: true, messageId: data.sid };
-    } else {
-      const errorText = await response.text();
-      console.error('Error al enviar SMS:', errorText);
+    console.log('SMS enviado correctamente:', result);
+    
+    // Registrar el SMS enviado en la base de datos si estamos en producción
+    try {
+      // Comentado para evitar errores en desarrollo
+      /* 
+      const { error: logError } = await supabase
+        .from('sms_logs')
+        .insert({
+          user_id: targetPhoneNumber.startsWith('+34') ? 'usuario_local' : 'usuario_externo',
+          phone_number: targetPhoneNumber,
+          message: message,
+          status: 'enviado',
+          twilio_sid: result.sid
+        });
       
-      // Verificar si es un error de número no verificado
-      const isUnverifiedNumber = 
-        errorText.includes('not a verified') || 
-        errorText.includes('unverified') || 
-        errorText.includes('21608');
-      
-      if (isUnverifiedNumber && targetPhoneNumber !== VERIFIED_PHONE_NUMBER) {
-        console.warn(`El número ${targetPhoneNumber} no está verificado en Twilio. Intentando con el número verificado.`);
-        
-        // Intentar nuevamente con el número verificado
-        return sendSMS(VERIFIED_PHONE_NUMBER, message);
-      } else if (isUnverifiedNumber) {
-        console.error(`Error: Incluso el número verificado ${VERIFIED_PHONE_NUMBER} no funciona. Verifica tu configuración de Twilio.`);
+      if (logError) {
+        console.warn('Error al registrar el SMS en la base de datos:', logError);
       }
-      
-      return { 
-        success: false, 
-        error: { 
-          message: isUnverifiedNumber ? 'Número no verificado en cuenta de prueba de Twilio' : errorText 
-        } 
-      };
+      */
+    } catch (logError) {
+      console.warn('Error al intentar registrar el SMS en la base de datos:', logError);
     }
+    
+    return { success: true, messageId: result.sid };
   } catch (error) {
-    console.error('Error inesperado al enviar SMS:', error);
-    return { success: false, error };
+    console.error('Error al enviar SMS:', error);
+    
+    // Intentar analizar el mensaje de error
+    let errorMessage = 'Error desconocido al enviar SMS';
+    let errorCode = 0;
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Detectar si es un error de número no verificado (común en cuentas de prueba)
+      if (
+        errorMessage.includes('not a verified') || 
+        errorMessage.includes('unverified')
+      ) {
+        errorMessage = `El número ${targetPhoneNumber} no está verificado en tu cuenta de prueba de Twilio. ` +
+                     `Debes verificar este número en el panel de Twilio o actualizar a una cuenta de pago.`;
+      }
+    }
+    
+    // Si es un error de Twilio, puede tener una estructura específica
+    const twilioError = error as any;
+    if (twilioError.code) {
+      errorCode = twilioError.code;
+    }
+    
+    return { success: false, error: { code: errorCode, message: errorMessage } };
   }
 };
 
