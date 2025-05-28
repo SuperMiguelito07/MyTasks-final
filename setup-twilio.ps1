@@ -10,9 +10,10 @@ if ($null -eq $envContent) {
 }
 
 # Buscar y reemplazar o añadir las variables de Twilio
-$twilioAccountSid = "REACT_APP_TWILIO_ACCOUNT_SID=AC9c1165f492832c0ea91885b254acdfa0"
-$twilioAuthToken = "REACT_APP_TWILIO_AUTH_TOKEN=e45a103c92467455839e69ed186781c9"
-$twilioPhoneNumber = "REACT_APP_TWILIO_PHONE_NUMBER=+17625725930"
+$twilioAccountSid = "REACT_APP_TWILIO_ACCOUNT_SID=your_account_sid"
+$twilioAuthToken = "REACT_APP_TWILIO_AUTH_TOKEN=your_auth_token"
+$twilioPhoneNumber = "REACT_APP_TWILIO_PHONE_NUMBER=your_twilio_phone"
+$verifiedPhoneNumber = "REACT_APP_VERIFIED_PHONE_NUMBER=your_verified_phone"
 
 $updatedContent = @()
 $accountSidFound = $false
