@@ -1,0 +1,57 @@
+/* Estilos para mejorar la experiencia en dispositivos móviles */
+
+/* Hacer que los botones sean más grandes y fáciles de tocar en móvil */
+.mobile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.mobile-btn {
+  padding: 12px 8px !important;
+  font-size: 16px !important;
+  border-radius: 8px !important;
+  width: 100% !important;
+  text-align: center !important;
+  margin: 0 !important;
+  font-weight: bold !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Colores específicos para los botones de acción */
+.mobile-btn.done-btn {
+  background-color: var(--success-color) !important;
+  color: white !important;
+}
+
+/* Hacer que las tarjetas de tareas sean más fáciles de tocar */
+@media (max-width: 768px) {
+  .task-card {
+    padding: 15px !important;
+    margin-bottom: 15px !important;
+    border-radius: 10px !important;
+  }
+  
+  .task-header {
+    margin-bottom: 12px !important;
+  }
+  
+  /* Mostrar siempre el contenido en móvil */
+  .task-content.visible {
+    display: block !important;
+  }
+  
+  /* Mejorar la visualización de las columnas Kanban */
+  .kanban-column {
+    min-height: 300px !important;
+    padding: 15px !important;
+    margin-bottom: 20px !important;
+  }
+  
+  /* Hacer que las notificaciones sean más visibles */
+  .notification-item {
+    padding: 15px !important;
+    margin-bottom: 10px !important;
+  }
+}

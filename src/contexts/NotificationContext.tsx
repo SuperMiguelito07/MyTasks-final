@@ -91,7 +91,24 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     if (user) {
       fetchNotifications();
     } else {
-      setNotifications([]);
+      // Cuando no hay usuario o hay error al cargar, mostrar notificaciones de ejemplo
+      const demoNotifications: Notification[] = [
+        {
+          id: 'demo-1',
+          user_id: 'demo-user',
+          message: 'Bienvenido a MyTasks - Gracias por usar nuestra aplicación de gestión de tareas.',
+          read: false,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'demo-2',
+          user_id: 'demo-user',
+          message: 'Recordatorio: Puedes crear nuevas tareas usando el botón + en la sección de tareas.',
+          read: true,
+          created_at: new Date(Date.now() - 86400000).toISOString() // 1 día antes
+        }
+      ];
+      setNotifications(demoNotifications);
     }
   }, [user, fetchNotifications]);
 

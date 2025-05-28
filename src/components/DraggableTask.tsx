@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { Task } from '../supabase';
 
 interface DraggableTaskProps {
@@ -7,18 +7,21 @@ interface DraggableTaskProps {
   onDelete: (taskId: string) => Promise<void>;
 }
 
-const DraggableTask: React.FC<DraggableTaskProps> = ({ task, onMove, onDelete }) => {
+const DraggableTask = memo(function DraggableTask({ task, onMove, onDelete }: DraggableTaskProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const taskRef = useRef<HTMLDivElement>(null);
   
+  // Función memoizada para detectar dispositivos móviles
+  const checkIfMobile = useCallback(() => {
+    const mobile = window.innerWidth <= 768;
+    setIsMobile(mobile);
+    return mobile;
+  }, []);
+  
   // Detectar si estamos en un dispositivo móvil
   useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
     // Comprobar al cargar
     checkIfMobile();
     
@@ -28,10 +31,10 @@ const DraggableTask: React.FC<DraggableTaskProps> = ({ task, onMove, onDelete })
     return () => {
       window.removeEventListener('resize', checkIfMobile);
     };
-  }, []);
+  }, [checkIfMobile]);
 
-  // Formatear la fecha para mostrarla de forma amigable
-  const formatDate = (dateString: string | null) => {
+  // Formatear la fecha para mostrarla de forma amigable (memoizado)
+  const formatDate = useCallback((dateString: string | null) => {
     if (!dateString) return null;
     
     const date = new Date(dateString);
@@ -40,10 +43,10 @@ const DraggableTask: React.FC<DraggableTaskProps> = ({ task, onMove, onDelete })
       month: '2-digit',
       year: 'numeric'
     });
-  };
+  }, []);
 
-  // Manejadores para arrastrar
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+  // Manejadores para arrastrar (optimizados con useCallback)
+  const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.dataTransfer.setData('taskId', task.id);
     e.dataTransfer.setData('currentStatus', task.status);
     e.dataTransfer.effectAllowed = 'move';
@@ -52,26 +55,34 @@ const DraggableTask: React.FC<DraggableTaskProps> = ({ task, onMove, onDelete })
     setTimeout(() => {
       setIsDragging(true);
     }, 0);
-  };
+  }, [task.id, task.status]);
 
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
 
-  // Manejadores para dispositivos táctiles
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+  // Manejadores para dispositivos táctiles (optimizados con useCallback)
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     // No hacemos nada en el inicio del toque, solo registramos el evento
-  };
+  }, []);
 
-  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     // En dispositivos móviles, expandimos/colapsamos la tarjeta al tocarla
     if (isMobile) {
       setIsExpanded(!isExpanded);
     }
-  };
+  }, [isMobile, isExpanded]);
   
-  // Determinar el color de la tarjeta según la fecha de vencimiento
-  const getTaskStyle = () => {
+  // Función para mover la tarea a otra columna
+  const moveTask = useCallback((newStatus: 'To Do' | 'Doing' | 'Done', e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    onMove(task.id, newStatus);
+  }, [onMove, task.id]);
+  
+  // Determinar el color de la tarjeta según la fecha de vencimiento (memoizado)
+  const taskStyle = useMemo(() => {
     if (!task.due_date) return {};
     
     const dueDate = new Date(task.due_date);
@@ -93,7 +104,7 @@ const DraggableTask: React.FC<DraggableTaskProps> = ({ task, onMove, onDelete })
     }
     
     return {};
-  };
+  }, [task.due_date]);
 
   return (
     <div 
@@ -105,7 +116,7 @@ const DraggableTask: React.FC<DraggableTaskProps> = ({ task, onMove, onDelete })
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onClick={() => isMobile && setIsExpanded(!isExpanded)}
-      style={getTaskStyle()}
+      style={taskStyle}
       role="article"
       aria-label={`Tasca: ${task.title}`}
     >
@@ -119,45 +130,43 @@ const DraggableTask: React.FC<DraggableTaskProps> = ({ task, onMove, onDelete })
       <div className={`task-content ${isExpanded || !isMobile ? 'visible' : 'hidden'}`}>
         {task.description && <p className="task-description">{task.description}</p>}
         
-        <div className="task-actions">
+        {/* Mostrar botones de acción siempre en móvil */}
+        <div className={`task-actions ${isMobile ? 'mobile-actions' : ''}`}>
           {task.status !== 'To Do' && (
             <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onMove(task.id, 'To Do');
-              }}
+              onClick={(e) => moveTask('To Do', e)}
               aria-label="Moure a Per Fer"
+              className={`action-btn ${isMobile ? 'mobile-btn' : ''}`}
             >
               Per Fer
             </button>
           )}
           {task.status !== 'Doing' && (
             <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onMove(task.id, 'Doing');
-              }}
+              onClick={(e) => moveTask('Doing', e)}
               aria-label="Moure a En Progrés"
+              className={`action-btn ${isMobile ? 'mobile-btn' : ''}`}
             >
               En Progrés
             </button>
           )}
           {task.status !== 'Done' && (
             <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onMove(task.id, 'Done');
-              }}
-              aria-label="Moure a Completades"
+              onClick={(e) => moveTask('Done', e)}
+              aria-label="Moure a Completat"
+              className={`action-btn ${isMobile ? 'mobile-btn done-btn' : ''}`}
             >
-              Completada
+              Completat
             </button>
           )}
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(task.id);
+              if (window.confirm('Estàs segur que vols eliminar aquesta tasca?')) {
+                onDelete(task.id);
+              }
             }}
+            className="delete-btn"
             aria-label="Eliminar tasca"
           >
             Eliminar
@@ -172,6 +181,6 @@ const DraggableTask: React.FC<DraggableTaskProps> = ({ task, onMove, onDelete })
       )}
     </div>
   );
-};
+});
 
 export default DraggableTask;
