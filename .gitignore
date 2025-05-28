@@ -10,6 +10,7 @@
 
 # production
 /build
+/static
 
 # misc
 .DS_Store
@@ -18,6 +19,23 @@
 .env.test.local
 .env.production.local
 
+# logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# build artifacts
+asset-manifest.json
+
+# local files
+OneDrive/
+
