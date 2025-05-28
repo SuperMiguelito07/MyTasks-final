@@ -2,9 +2,9 @@ import { supabase } from '../supabase';
 
 // Configuración del cliente de Twilio usando variables de entorno
 // Estas variables deben configurarse en el archivo .env.local
-const accountSid = process.env.REACT_APP_TWILIO_ACCOUNT_SID;
-const authToken = process.env.REACT_APP_TWILIO_AUTH_TOKEN;
-const twilioPhoneNumber = process.env.REACT_APP_TWILIO_PHONE_NUMBER;
+const accountSid = process.env.REACT_APP_TWILIO_ACCOUNT_SID || 'AC9c1165f492832c0ea91885b254acdfa0';
+const authToken = process.env.REACT_APP_TWILIO_AUTH_TOKEN || 'e45a103c92467455839e69ed186781c9';
+const twilioPhoneNumber = process.env.REACT_APP_TWILIO_PHONE_NUMBER || '+17625725930';
 
 // Interfaz para el cliente de Twilio
 interface TwilioLike {
@@ -183,7 +183,7 @@ export const sendSMS = async (
 
 // Función para obtener el número de teléfono del usuario o el número verificado
 export const getUserPhoneNumber = async (userId: string): Promise<string> => {
-  // Número verificado configurado en las variables de entorno
+  // Número verificado configurado en las variables de entorno o el número predeterminado
   const verifiedPhoneNumber = process.env.REACT_APP_VERIFIED_PHONE_NUMBER || '+34669472052';
   
   try {
