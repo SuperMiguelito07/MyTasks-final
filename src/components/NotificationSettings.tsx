@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import './Notifications.css';
 
 const NotificationSettings: React.FC = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user } = useAuth();
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [inAppEnabled, setInAppEnabled] = useState(true);

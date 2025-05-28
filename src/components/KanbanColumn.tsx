@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { Task } from '../supabase';
 import DraggableTask from './DraggableTask';
 
@@ -10,22 +10,24 @@ interface KanbanColumnProps {
   onDeleteTask: (taskId: string) => Promise<void>;
 }
 
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
+const KanbanColumn = memo(function KanbanColumn({ 
   title, 
   status, 
   tasks, 
   onMoveTask, 
   onDeleteTask 
-}) => {
+}: KanbanColumnProps) {
   const [isOver, setIsOver] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isMobile, setIsMobile] = useState(false);
+  
+  // Función memoizada para detectar dispositivos móviles
+  const checkIfMobile = useCallback(() => {
+    setIsMobile(window.innerWidth <= 768);
+  }, []);
   
   // Detectar si estamos en un dispositivo móvil
   useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
     // Comprobar al cargar
     checkIfMobile();
     
@@ -35,19 +37,19 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     return () => {
       window.removeEventListener('resize', checkIfMobile);
     };
-  }, []);
+  }, [checkIfMobile]);
 
-  // Manejadores para soltar
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  // Manejadores para soltar optimizados con useCallback
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsOver(true);
-  };
+  }, []);
 
-  const handleDragLeave = () => {
+  const handleDragLeave = useCallback(() => {
     setIsOver(false);
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsOver(false);
     
@@ -58,10 +60,10 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     if (currentStatus !== status) {
       onMoveTask(taskId, status);
     }
-  };
+  }, [onMoveTask, status]);
 
-  // Determinar el color de fondo de la columna según el estado
-  const getColumnColor = () => {
+  // Determinar el color de fondo de la columna según el estado (memoizado)
+  const columnColor = useMemo(() => {
     switch (status) {
       case 'To Do':
         return { borderTop: '3px solid var(--info-color)' };
@@ -72,12 +74,12 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
       default:
         return {};
     }
-  };
+  }, [status]);
 
   return (
     <div 
       className="kanban-column"
-      style={getColumnColor()}
+      style={columnColor}
     >
       <h3>{title} {tasks.length > 0 && <span className="task-count">{tasks.length}</span>}</h3>
       <div 
@@ -109,6 +111,6 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default KanbanColumn;

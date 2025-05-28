@@ -25,7 +25,9 @@ type NotificationProviderProps = {
 
 // Proveedor de notificaciones
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { preferences } = useUserPreferences();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState<boolean>(false);

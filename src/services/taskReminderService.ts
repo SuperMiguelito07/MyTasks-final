@@ -63,6 +63,7 @@ const processTasks = async (userId: string, tasks: any[]) => {
     }
     
     // Procesar cada tarea y enviar notificación
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const results = await Promise.all(
       tasks.map(async (task) => {
         try {

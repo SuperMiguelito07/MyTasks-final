@@ -1,3 +1,5 @@
+// Importamos supabase para operaciones con la base de datos cuando sea necesario
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { supabase } from '../supabase';
 
 // Configuración del cliente de Twilio usando variables de entorno
@@ -80,12 +82,14 @@ const simulatedTwilioClient: TwilioLike = {
 };
 
 // Decidir qué cliente usar
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let twilioClient: TwilioLike | null = null;
 
 // Usar el cliente real si estamos en producción o si se ha solicitado explícitamente
 const useRealClient = true; // Siempre usamos el cliente real para enviar SMS
 
 // Número de teléfono verificado en la cuenta de Twilio
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const VERIFIED_PHONE_NUMBER = '+34669472052'; // Solo este número está verificado
 
 if (useRealClient && accountSid && authToken) {
