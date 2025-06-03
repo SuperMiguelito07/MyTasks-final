@@ -109,6 +109,7 @@ const Auth: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="exemple@correu.com"
+              autoComplete="username"
             />
           </div>
           
@@ -120,6 +121,7 @@ const Auth: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="La teva contrasenya"
+              autoComplete={isLogin ? "current-password" : "new-password"}
             />
           </div>
           

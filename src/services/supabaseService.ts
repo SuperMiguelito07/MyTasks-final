@@ -227,7 +227,14 @@ export const authService = {
 
       // Si el usuario no existe en la tabla users, lo creamos automáticamente
       if (!userData) {
-        console.log('Usuario autenticado pero no existe en la tabla users, creando perfil...');
+        // Intentamos crear un perfil solo si tenemos una sesión válida
+        // Esto evita intentos repetidos que generan errores 401
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          return { user: null, error: new Error('No hay sesión activa') };
+        }
+        
+        // Intentar crear el perfil solo una vez por sesión
         try {
           const { data: newUserData, error: createError } = await supabase
             .from('users')
@@ -243,7 +250,10 @@ export const authService = {
             .maybeSingle();
 
           if (createError) {
-            console.error('Error al crear perfil de usuario automáticamente:', createError);
+            // Evitar log repetitivo de errores 401
+            if (createError.code !== '401') {
+              console.error('Error al crear perfil de usuario:', createError);
+            }
             // Aún así devolvemos un usuario básico
             return { 
               user: {

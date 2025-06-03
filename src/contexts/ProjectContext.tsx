@@ -3,6 +3,7 @@ import { Project, Task } from '../supabase';
 import { projectService, taskService } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 import { sendTaskCreatedSMS, sendTaskCompletedSMS } from '../services/smsService';
+import { supabase } from '../supabase';
 
 // Tipo para el contexto de proyectos
 type ProjectContextType = {
@@ -108,9 +109,9 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     } finally {
       setLoading(false);
     }
-  }, [user, currentProject]);
+  }, [currentProject, user]);
 
-  // Cargar proyectos cuando el usuario cambia
+  // Cargar proyectos cuando el componente se monta o cambia el usuario
   useEffect(() => {
     if (user) {
       fetchProjects();
@@ -138,15 +139,12 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     setError(null);
     
     try {
-      const newProject: Omit<Project, 'id'> = {
+      const { project, error } = await projectService.createProject({
         name: nom,
         description: descripcio,
         owner_id: user.id,
-        created_at: new Date().toISOString(),
-        is_archived: false
-      };
-      
-      const { project, error } = await projectService.createProject(newProject);
+        created_at: new Date().toISOString()
+      });
       
       if (error) {
         console.error('Error al crear proyecto:', error);
@@ -185,13 +183,11 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
       }
       
       // Actualizar la lista de proyectos
-      setProjects(prevProjects => 
-        prevProjects.map(p => p.id === projectId ? { ...p, ...updates } : p)
-      );
+      setProjects(prevProjects => prevProjects.map(p => p.id === projectId ? project! : p));
       
-      // Actualizar el proyecto actual si es el que se ha modificado
+      // Si el proyecto actual es el que se ha actualizado, actualizarlo también
       if (currentProject && currentProject.id === projectId) {
-        setCurrentProject({ ...currentProject, ...updates });
+        setCurrentProject(project);
       }
       
       return project;
@@ -219,12 +215,16 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
       }
       
       // Actualizar la lista de proyectos
-      const updatedProjects = projects.filter(p => p.id !== projectId);
-      setProjects(updatedProjects);
+      setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId));
       
-      // Si el proyecto eliminado era el actual, establecer otro como actual
+      // Si el proyecto actual es el que se ha eliminado, establecer otro como actual
       if (currentProject && currentProject.id === projectId) {
-        setCurrentProject(updatedProjects.length > 0 ? updatedProjects[0] : null);
+        const remainingProjects = projects.filter(p => p.id !== projectId);
+        if (remainingProjects.length > 0) {
+          setCurrentProject(remainingProjects[0]);
+        } else {
+          setCurrentProject(null);
+        }
       }
       
       return true;
@@ -239,6 +239,8 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
 
   // Función para crear una tarea
   const createTask = async (task: Omit<Task, 'id'>): Promise<Task | null> => {
+    if (!user) return null;
+    
     setLoading(true);
     setError(null);
     
@@ -254,18 +256,26 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
       // Actualizar la lista de tareas
       setTasks(prevTasks => [...prevTasks, newTask!]);
       
+      // Obtener el nombre del proyecto
+      let projectName = 'un proyecto';
+      if (currentProject) {
+        projectName = currentProject.name;
+      } else if (task.project_id) {
+        // Intentar encontrar el proyecto en la lista de proyectos
+        const taskProject = projects.find(p => p.id === task.project_id);
+        if (taskProject) {
+          projectName = taskProject.name;
+        }
+      }
+      
+      // Nota: Aquí iría la creación de notificaciones, pero se ha eliminado por petición del usuario
+      
       // Enviar SMS para la nueva tarea automáticamente
       console.log('Enviando SMS automáticamente para la nueva tarea:', newTask);
       try {
-        // Obtener el nombre del proyecto
-        let projectName = 'un proyecto';
-        if (currentProject) {
-          projectName = currentProject.name;
-        }
-        
         // Enviar SMS de notificación de tarea creada
         const smsResult = await sendTaskCreatedSMS(
-          user!.id,
+          user.id,
           newTask!.title,
           projectName
         );
@@ -298,6 +308,11 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     try {
       // Obtener la tarea actual antes de actualizarla para comparar estados
       const currentTask = tasks.find(t => t.id === taskId);
+      if (!currentTask) {
+        console.error('No se encontró la tarea para actualizar:', taskId);
+        return null;
+      }
+      
       const { task: updatedTask, error } = await taskService.updateTask(taskId, updates);
       
       if (error) {
@@ -307,13 +322,11 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
       }
       
       // Actualizar la lista de tareas
-      setTasks(prevTasks => 
-        prevTasks.map(t => t.id === taskId ? { ...t, ...updates } : t)
-      );
+      setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? updatedTask! : t));
       
-      // Verificar si la tarea se ha marcado como completada
-      if (updates.status === 'Done' && currentTask?.status !== 'Done' && currentTask) {
-        console.log('Tarea marcada como completada, enviando SMS...');
+      // Si la tarea ha pasado de no completada a completada, enviar SMS
+      if (currentTask.status !== 'Done' && updatedTask!.status === 'Done') {
+        console.log('Tarea marcada como completada, enviando SMS:', updatedTask);
         try {
           // Obtener el nombre del proyecto
           let projectName = 'un proyecto';
@@ -389,31 +402,6 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     
     // Actualizamos la tarea
     const updatedTask = await updateTask(taskId, { status: newStatus });
-    
-    if (updatedTask) {
-      // Solo enviamos SMS si la tarea se ha marcado como completada
-      if (newStatus === 'Done') {
-        console.log('Enviando SMS para tarea completada:', updatedTask);
-        try {
-          // Obtener el nombre del proyecto
-          let projectName = 'un proyecto';
-          if (currentProject) {
-            projectName = currentProject.name;
-          }
-          
-          const smsResult = await sendTaskCompletedSMS(
-            user!.id,
-            currentTask.title,
-            projectName
-          );
-          
-          console.log('Resultado del SMS de tarea completada:', smsResult);
-        } catch (smsError) {
-          console.error('Error al enviar SMS de tarea completada:', smsError);
-          // No fallamos la actualización de la tarea si falla el envío del SMS
-        }
-      }
-    }
     
     return updatedTask;
   };

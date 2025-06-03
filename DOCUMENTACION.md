@@ -232,3 +232,206 @@ El código está estructurado de manera modular, lo que facilita:
 ## Conclusión
 
 MyTask es una aplicación moderna y completa para la gestión de tareas, con un enfoque en la experiencia de usuario y la funcionalidad. Su arquitectura basada en React y Supabase proporciona una base sólida para futuras mejoras y extensiones.
+
+# Diagramas Técnicos
+
+## 1. Diagrama del Sistema de Archivos Detallado
+
+```
+MyTasks-main/
+├── .env.local                # Variables de entorno locales
+├── .git/                     # Repositorio Git
+├── .gitignore                # Archivos ignorados por Git
+├── DOCUMENTACION.md          # Documentación del proyecto
+├── README.md                 # Información general del proyecto
+├── build/                    # Archivos compilados para producción
+├── netlify.toml              # Configuración para despliegue en Netlify
+├── node_modules/             # Dependencias del proyecto
+├── package-lock.json         # Versiones exactas de dependencias
+├── package.json              # Configuración del proyecto y dependencias
+├── public/                   # Archivos públicos estáticos
+├── setup-env.ps1             # Script para configurar variables de entorno
+├── src/                      # Código fuente
+│   ├── App.css               # Estilos para el componente App
+│   ├── App.test.tsx          # Tests para el componente App
+│   ├── App.tsx               # Componente principal de la aplicación
+│   ├── components/           # Componentes reutilizables
+│   │   ├── DraggableTask.tsx # Componente para tareas arrastrables
+│   │   ├── KanbanColumn.tsx  # Componente para columnas Kanban
+│   │   ├── LoadingFallback.tsx # Componente de carga
+│   │   ├── MobileNav.tsx     # Navegación para dispositivos móviles
+│   │   ├── NotificationCenter.tsx # Centro de notificaciones
+│   │   ├── NotificationSettings.tsx # Configuración de notificaciones
+│   │   └── Notifications.css # Estilos para notificaciones
+│   ├── contexts/             # Contextos de React para gestión de estado
+│   │   ├── AuthContext.tsx   # Contexto de autenticación
+│   │   ├── NotificationContext.tsx # Contexto de notificaciones
+│   │   ├── ProjectContext.tsx # Contexto de proyectos
+│   │   └── UserPreferencesContext.tsx # Contexto de preferencias de usuario
+│   ├── index.css             # Estilos globales
+│   ├── index.tsx             # Punto de entrada de la aplicación
+│   ├── logo.svg              # Logo de la aplicación
+│   ├── pages/                # Páginas de la aplicación
+│   │   ├── Auth.tsx          # Página de autenticación
+│   │   └── Dashboard.tsx     # Página principal del dashboard
+│   ├── react-app-env.d.ts    # Tipos para React
+│   ├── reportWebVitals.ts    # Reporte de métricas web
+│   ├── services/             # Servicios para interactuar con APIs
+│   │   ├── smsService.ts     # Servicio para envío de SMS
+│   │   ├── supabaseService.ts # Servicios para interactuar con Supabase
+│   │   └── taskReminderService.ts # Servicio para recordatorios de tareas
+│   ├── setupTests.ts         # Configuración de tests
+│   ├── styles/               # Estilos adicionales
+│   └── supabase.ts           # Configuración y tipos de Supabase
+└── tsconfig.json             # Configuración de TypeScript
+```
+
+## 2. Diagrama de Clases y Librerías
+
+### Clases Principales
+
+```
++-------------------+        +-------------------+        +-------------------+
+|       User        |        |      Project      |        |       Task        |
++-------------------+        +-------------------+        +-------------------+
+| id: string        |        | id: string        |        | id: string        |
+| name: string      |        | name: string      |        | project_id: string|
+| email: string     |        | description: string|       | title: string     |
+| phone_number?: string|     | owner_id: string  |        | description: string|
+| created_at: string|        | created_at: string|        | status: enum      |
++-------------------+        | is_archived?: bool|        | created_at: string|
+                             +-------------------+        | due_date: string  |
+                                      |                   | assigned_to: string|
+                                      |                   | is_archived?: bool|
+                                      |                   +-------------------+
+                                      |                            |
+                                      v                            v
++-------------------+        +-------------------+        +-------------------+
+|   Notification    |        |  UserPreferences  |        |  TaskReminder     |
++-------------------+        +-------------------+        +-------------------+
+| id: string        |        | id: string        |        | task_id: string   |
+| user_id: string   |        | user_id: string   |        | reminder_time: date|
+| message: string   |        | notification_prefs|        | sent: boolean     |
+| read: boolean     |        | theme_prefs       |        | user_id: string   |
+| created_at: string|        | created_at: string|        +-------------------+
+| related_task_id?  |        | updated_at: string|
+| related_project_id|        +-------------------+
++-------------------+
+```
+
+### Principales Librerías Utilizadas
+
+```
++-------------------+        +-------------------+        +-------------------+
+|      React        |        |     Supabase      |        |      Twilio       |
++-------------------+        +-------------------+        +-------------------+
+| Framework UI      |        | Base de datos     |        | Servicio SMS      |
+| Componentes       |        | Autenticación     |        | Notificaciones    |
+| Hooks             |        | Almacenamiento    |        | Recordatorios     |
++-------------------+        +-------------------+        +-------------------+
+         |                            |                            |
+         v                            v                            v
++-------------------+        +-------------------+        +-------------------+
+|  React Router Dom |        |  TypeScript       |        |    SendGrid       |
++-------------------+        +-------------------+        +-------------------+
+| Navegación        |        | Tipado estático   |        | Servicio Email    |
+| Rutas             |        | Interfaces        |        | Notificaciones    |
+| Protección rutas  |        | Tipos             |        | Recordatorios     |
++-------------------+        +-------------------+        +-------------------+
+```
+
+## 3. Modelo ER (Entidad-Relación)
+
+```
++-------------+       +-------------+       +-------------+
+|    USERS    |       |   PROJECTS  |       |    TASKS    |
++-------------+       +-------------+       +-------------+
+| PK id       |<------| FK owner_id |       | PK id       |
+|    name     |       | PK id       |<------| FK project_id|
+|    email    |       |    name     |       |    title    |
+|    phone    |       |    desc     |       |    desc     |
+|    created  |       |    created  |       |    status   |
++-------------+       |    archived |       |    created  |
+       ^              +-------------+       |    due_date |
+       |                     ^              | FK assigned_to|
+       |                     |              |    archived |
+       |                     |              +-------------+
+       |                     |                     ^
+       |                     |                     |
++-------------+       +-------------+       +-------------+
+| USER_PREFS  |       |NOTIFICATIONS|       |TASK_REMINDER|
++-------------+       +-------------+       +-------------+
+| PK id       |       | PK id       |       | PK id       |
+| FK user_id  |       | FK user_id  |       | FK task_id  |
+|    notif_pref|       |    message  |       | FK user_id  |
+|    theme    |       |    read     |       |    time     |
+|    created  |       |    created  |       |    sent     |
+|    updated  |       | FK task_id  |       +-------------+
++-------------+       | FK project_id|
+                      +-------------+
+```
+
+## 4. Modelo Relacional
+
+### Tabla: users
+- **id**: UUID, PK
+- **name**: VARCHAR, NOT NULL
+- **email**: VARCHAR, NOT NULL, UNIQUE
+- **phone_number**: VARCHAR, NULL
+- **created_at**: TIMESTAMP, NOT NULL
+
+### Tabla: projects
+- **id**: UUID, PK
+- **name**: VARCHAR, NOT NULL
+- **description**: TEXT
+- **owner_id**: UUID, FK -> users.id, NOT NULL
+- **created_at**: TIMESTAMP, NOT NULL
+- **is_archived**: BOOLEAN, DEFAULT false
+
+### Tabla: tasks
+- **id**: UUID, PK
+- **project_id**: UUID, FK -> projects.id, NOT NULL
+- **title**: VARCHAR, NOT NULL
+- **description**: TEXT
+- **status**: ENUM ('To Do', 'Doing', 'Done'), NOT NULL
+- **created_at**: TIMESTAMP, NOT NULL
+- **due_date**: TIMESTAMP, NULL
+- **assigned_to**: UUID, FK -> users.id, NULL
+- **is_archived**: BOOLEAN, DEFAULT false
+
+### Tabla: notifications
+- **id**: UUID, PK
+- **user_id**: UUID, FK -> users.id, NOT NULL
+- **message**: TEXT, NOT NULL
+- **read**: BOOLEAN, DEFAULT false, NOT NULL
+- **created_at**: TIMESTAMP, NOT NULL
+- **related_task_id**: UUID, FK -> tasks.id, NULL
+- **related_project_id**: UUID, FK -> projects.id, NULL
+
+### Tabla: user_preferences
+- **id**: UUID, PK
+- **user_id**: UUID, FK -> users.id, NOT NULL, UNIQUE
+- **notification_email**: BOOLEAN, DEFAULT true
+- **notification_sms**: BOOLEAN, DEFAULT false
+- **notification_push**: BOOLEAN, DEFAULT true
+- **theme**: VARCHAR, DEFAULT 'light'
+- **created_at**: TIMESTAMP, NOT NULL
+- **updated_at**: TIMESTAMP, NOT NULL
+
+### Tabla: task_reminders
+- **id**: UUID, PK
+- **task_id**: UUID, FK -> tasks.id, NOT NULL
+- **user_id**: UUID, FK -> users.id, NOT NULL
+- **reminder_time**: TIMESTAMP, NOT NULL
+- **sent**: BOOLEAN, DEFAULT false, NOT NULL
+
+## 5. Relaciones
+
+1. **Usuario (1) -> Proyectos (N)**: Un usuario puede crear múltiples proyectos.
+2. **Proyecto (1) -> Tareas (N)**: Un proyecto puede contener múltiples tareas.
+3. **Usuario (1) -> Tareas (N)**: Un usuario puede tener asignadas múltiples tareas.
+4. **Usuario (1) -> Notificaciones (N)**: Un usuario puede tener múltiples notificaciones.
+5. **Usuario (1) -> Preferencias (1)**: Un usuario tiene un único conjunto de preferencias.
+6. **Tarea (1) -> Recordatorios (N)**: Una tarea puede tener múltiples recordatorios programados.
+7. **Proyecto (1) -> Notificaciones (N)**: Un proyecto puede estar relacionado con múltiples notificaciones.
+8. **Tarea (1) -> Notificaciones (N)**: Una tarea puede estar relacionada con múltiples notificaciones.

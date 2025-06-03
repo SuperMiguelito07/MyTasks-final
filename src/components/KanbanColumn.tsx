@@ -18,12 +18,13 @@ const KanbanColumn = memo(function KanbanColumn({
   onDeleteTask 
 }: KanbanColumnProps) {
   const [isOver, setIsOver] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isMobile, setIsMobile] = useState(false);
   
   // Función memoizada para detectar dispositivos móviles
   const checkIfMobile = useCallback(() => {
-    setIsMobile(window.innerWidth <= 768);
+    const mobile = window.innerWidth <= 768;
+    setIsMobile(mobile);
+    return mobile;
   }, []);
   
   // Detectar si estamos en un dispositivo móvil

@@ -1,4 +1,4 @@
-/* Estilos generales */
+/* Estilos generales - Optimizados para rendimiento */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -17,6 +17,95 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  /* Activar aceleración de hardware para mejorar el rendimiento */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Estilos para el componente de carga */
+.loading-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #007bff;
+  animation: spin 1s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Estilos para el monitor de rendimiento */
+.performance-monitor {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #00ff00;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+  max-width: 300px;
+}
+
+.performance-toggle {
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: center;
+  border-radius: 5px;
+  user-select: none;
+}
+
+.performance-metrics {
+  padding: 10px;
+  border-top: 1px solid #333;
+}
+
+.performance-metrics h4 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  text-align: center;
+}
+
+.performance-metrics ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.performance-metrics li {
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.metric-name {
+  flex: 1;
+}
+
+.metric-value {
+  font-weight: bold;
+  margin: 0 5px;
+}
+
+.metric-unit {
+  opacity: 0.7;
+  width: 40px;
+  text-align: right;
 }
 
 /* Estilos para la página de autenticación */
