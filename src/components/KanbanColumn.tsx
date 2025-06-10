@@ -2,6 +2,10 @@ import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { Task } from '../supabase';
 import DraggableTask from './DraggableTask';
 
+// Aquest component representa una columna del tauler Kanban
+// Gestiona l'arrossegament i deixada de tasques entre columnes
+
+// Definició de les propietats que rep el component KanbanColumn
 interface KanbanColumnProps {
   title: string;
   status: 'To Do' | 'Doing' | 'Done';
@@ -10,6 +14,8 @@ interface KanbanColumnProps {
   onDeleteTask: (taskId: string) => Promise<void>;
 }
 
+// Utilitzem memo per evitar renderitzacions innecessàries quan les props no canvien
+// Això millora el rendiment quan hi ha moltes tasques
 const KanbanColumn = memo(function KanbanColumn({ 
   title, 
   status, 
@@ -17,22 +23,24 @@ const KanbanColumn = memo(function KanbanColumn({
   onMoveTask, 
   onDeleteTask 
 }: KanbanColumnProps) {
+  // Estat per controlar quan una tasca s'està arrossegant sobre aquesta columna
   const [isOver, setIsOver] = useState(false);
+  // Estat per detectar si estem en un dispositiu mòbil i adaptar el comportament
   const [isMobile, setIsMobile] = useState(false);
   
-  // Función memoizada para detectar dispositivos móviles
+  // Funció memoritzada per detectar dispositius mòbils
   const checkIfMobile = useCallback(() => {
     const mobile = window.innerWidth <= 768;
     setIsMobile(mobile);
     return mobile;
   }, []);
   
-  // Detectar si estamos en un dispositivo móvil
+  // Detectar si estem en un dispositiu mòbil
   useEffect(() => {
-    // Comprobar al cargar
+    // Comprovar en carregar
     checkIfMobile();
     
-    // Comprobar al cambiar el tamaño de la ventana
+    // Comprovar en canviar la mida de la finestra
     window.addEventListener('resize', checkIfMobile);
     
     return () => {
@@ -40,30 +48,38 @@ const KanbanColumn = memo(function KanbanColumn({
     };
   }, [checkIfMobile]);
 
-  // Manejadores para soltar optimizados con useCallback
+  // Gestors per deixar anar optimitzats amb useCallback
+  // Gestor d'esdeveniment quan una tasca s'arrossega sobre la columna
+  // preventDefault és necessari per permetre la deixada
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsOver(true);
   }, []);
 
+  // Gestor d'esdeveniment quan una tasca surt de l'àrea de la columna
   const handleDragLeave = useCallback(() => {
     setIsOver(false);
   }, []);
 
+  // Gestor d'esdeveniment quan es deixa una tasca a la columna
+  // Recupera la informació de la tasca des de l'objecte dataTransfer
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsOver(false);
     
+    // Obté l'ID i l'estat actual de la tasca que s'ha arrossegat
     const taskId = e.dataTransfer.getData('taskId');
     const currentStatus = e.dataTransfer.getData('currentStatus');
     
-    // Solo mover si la tarea se arrastra a una columna diferente
+    // Només moure si la tasca s'arrossega a una columna diferent
     if (currentStatus !== status) {
       onMoveTask(taskId, status);
     }
   }, [onMoveTask, status]);
 
-  // Determinar el color de fondo de la columna según el estado (memoizado)
+  // Determinar el color de fons de la columna segons l'estat (memoritzat)
+  // Calcula el color de la vora superior de la columna segons l'estat
+  // Utilitzem useMemo per evitar recalcular-ho en cada renderització
   const columnColor = useMemo(() => {
     switch (status) {
       case 'To Do':
@@ -77,6 +93,7 @@ const KanbanColumn = memo(function KanbanColumn({
     }
   }, [status]);
 
+  // Renderitza la columna amb les seves tasques i gestors d'esdeveniments
   return (
     <div 
       className="kanban-column"
@@ -89,11 +106,11 @@ const KanbanColumn = memo(function KanbanColumn({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         role="region"
-        aria-label={`Columna ${title} con ${tasks.length} tareas`}
+        aria-label={`Columna ${title} amb ${tasks.length} tasques`}
       >
         {isOver && (
           <div className="drop-indicator">
-            Soltar aquí
+            Deixar aquí
           </div>
         )}
         
@@ -114,4 +131,5 @@ const KanbanColumn = memo(function KanbanColumn({
   );
 });
 
+// Exportem el component per utilitzar-lo a altres parts de l'aplicació
 export default KanbanColumn;

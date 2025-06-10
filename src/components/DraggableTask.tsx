@@ -13,19 +13,19 @@ const DraggableTask = memo(function DraggableTask({ task, onMove, onDelete }: Dr
   const [isExpanded, setIsExpanded] = useState(false);
   const taskRef = useRef<HTMLDivElement>(null);
   
-  // Función memoizada para detectar dispositivos móviles
+  // Funció memoritzada per detectar dispositius mòbils
   const checkIfMobile = useCallback(() => {
     const mobile = window.innerWidth <= 768;
     setIsMobile(mobile);
     return mobile;
   }, []);
   
-  // Detectar si estamos en un dispositivo móvil
+  // Detectar si estem en un dispositiu mòbil
   useEffect(() => {
-    // Comprobar al cargar
+    // Comprovar en carregar
     checkIfMobile();
     
-    // Comprobar al cambiar el tamaño de la ventana
+    // Comprovar en canviar la mida de la finestra
     window.addEventListener('resize', checkIfMobile);
     
     return () => {
@@ -33,7 +33,7 @@ const DraggableTask = memo(function DraggableTask({ task, onMove, onDelete }: Dr
     };
   }, [checkIfMobile]);
 
-  // Formatear la fecha para mostrarla de forma amigable (memoizado)
+  // Formatar la data per mostrar-la de forma amigable (memoritzat)
   const formatDate = useCallback((dateString: string | null) => {
     if (!dateString) return null;
     
@@ -45,13 +45,13 @@ const DraggableTask = memo(function DraggableTask({ task, onMove, onDelete }: Dr
     });
   }, []);
 
-  // Manejadores para arrastrar (optimizados con useCallback)
+  // Gestors per arrossegar (optimitzats amb useCallback)
   const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.dataTransfer.setData('taskId', task.id);
     e.dataTransfer.setData('currentStatus', task.status);
     e.dataTransfer.effectAllowed = 'move';
     
-    // Añadir un pequeño retraso para que la clase se aplique después de que comience el arrastre
+    // Afegir un petit retard perquè la classe s'apliqui després que comenci l'arrossegament
     setTimeout(() => {
       setIsDragging(true);
     }, 0);
@@ -61,19 +61,19 @@ const DraggableTask = memo(function DraggableTask({ task, onMove, onDelete }: Dr
     setIsDragging(false);
   }, []);
 
-  // Manejadores para dispositivos táctiles (optimizados con useCallback)
+  // Gestors per a dispositius tàctils (optimitzats amb useCallback)
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    // No hacemos nada en el inicio del toque, solo registramos el evento
+    // No fem res a l'inici del toc, només registrem l'esdeveniment
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    // En dispositivos móviles, expandimos/colapsamos la tarjeta al tocarla
+    // En dispositius mòbils, expandim/col·lapsem la targeta en tocar-la
     if (isMobile) {
       setIsExpanded(!isExpanded);
     }
   }, [isMobile, isExpanded]);
   
-  // Función para mover la tarea a otra columna
+  // Funció per moure la tasca a una altra columna
   const moveTask = useCallback((newStatus: 'To Do' | 'Doing' | 'Done', e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
@@ -81,7 +81,7 @@ const DraggableTask = memo(function DraggableTask({ task, onMove, onDelete }: Dr
     onMove(task.id, newStatus);
   }, [onMove, task.id]);
   
-  // Determinar el color de la tarjeta según la fecha de vencimiento (memoizado)
+  // Determinar el color de la targeta segons la data de venciment (memoritzat)
   const taskStyle = useMemo(() => {
     if (!task.due_date) return {};
     
@@ -90,7 +90,7 @@ const DraggableTask = memo(function DraggableTask({ task, onMove, onDelete }: Dr
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    // Eliminar las horas, minutos y segundos para comparar solo fechas
+    // Eliminar les hores, minuts i segons per comparar només dates
     today.setHours(0, 0, 0, 0);
     tomorrow.setHours(0, 0, 0, 0);
     dueDate.setHours(0, 0, 0, 0);
@@ -130,7 +130,7 @@ const DraggableTask = memo(function DraggableTask({ task, onMove, onDelete }: Dr
       <div className={`task-content ${isExpanded || !isMobile ? 'visible' : 'hidden'}`}>
         {task.description && <p className="task-description">{task.description}</p>}
         
-        {/* Mostrar botones de acción siempre en móvil */}
+        {/* Mostrar botons d'acció sempre en mòbil */}
         <div className={`task-actions ${isMobile ? 'mobile-actions' : ''}`}>
           {task.status !== 'To Do' && (
             <button 

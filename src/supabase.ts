@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Utilizamos las variables de entorno para las credenciales de Supabase
-const supabaseUrl = 'https://egoxgyvexjjykwmatiap.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnb3hneXZleGpqeWt3bWF0aWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyNDIxOTMsImV4cCI6MjA2MjgxODE5M30.qUqgTq9aQtRGbdmxws_CyfLHQw31TnRElQbyDT7Tcow';
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
 
 // Creamos el cliente de Supabase
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

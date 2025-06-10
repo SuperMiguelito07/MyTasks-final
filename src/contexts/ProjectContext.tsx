@@ -2,10 +2,10 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { Project, Task } from '../supabase';
 import { projectService, taskService } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
-import { sendTaskCreatedSMS, sendTaskCompletedSMS } from '../services/smsService';
+import { sendTaskCreatedSMS} from '../services/smsService';
 import { supabase } from '../supabase';
 
-// Tipo para el contexto de proyectos
+// Tipus per al context de projectes
 type ProjectContextType = {
   projects: Project[];
   currentProject: Project | null;
@@ -24,15 +24,15 @@ type ProjectContextType = {
   moveTask: (taskId: string, newStatus: 'To Do' | 'Doing' | 'Done') => Promise<Task | null>;
 };
 
-// Crear el contexto
+// Crear el context
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
-// Props para el proveedor de proyectos
+// Props per al proveïdor de projectes
 type ProjectProviderProps = {
   children: ReactNode;
 };
 
-// Proveedor de proyectos
+// Proveïdor de projectes
 export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) => {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -41,18 +41,18 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Cache para almacenar las tareas por proyecto y evitar llamadas innecesarias a la API
+  // Memòria cau per emmagatzemar les tasques per projecte i evitar crides innecessàries a l'API
   const tasksCache = useRef<Record<string, { tasks: Task[], timestamp: number }>>({});
   
-  // Función para cargar tareas envuelta en useCallback con soporte de caché
+  // Funció per carregar tasques embolicada en useCallback amb suport de memòria cau
   const fetchTasks = useCallback(async (projectId: string) => {
-    // Verificar si tenemos las tareas en caché y si son recientes (menos de 30 segundos)
+    // Verificar si tenim les tasques en memòria cau i si són recents (menys de 30 segons)
     const cachedData = tasksCache.current[projectId];
     const now = Date.now();
     
     if (cachedData && (now - cachedData.timestamp < 30000)) {
-      // Usar datos en caché si son recientes
-      console.log('Usando tareas en caché para el proyecto:', projectId);
+      // Utilitzar dades en memòria cau si són recents
+      console.log('Utilitzant tasques en memòria cau per al projecte:', projectId);
       setTasks(cachedData.tasks);
       return;
     }
@@ -67,7 +67,7 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
         console.error('Error al cargar tareas:', error);
         setError('No s\'han pogut carregar les tasques');
       } else {
-        // Actualizar el estado y la caché
+        // Actualitzar l'estat i la memòria cau
         setTasks(tasks);
         tasksCache.current[projectId] = {
           tasks,
@@ -75,14 +75,14 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
         };
       }
     } catch (err) {
-      console.error('Error inesperado al cargar tareas:', err);
+      console.error('Error inesperat al carregar tasques:', err);
       setError('Error inesperat al carregar les tasques');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Función para cargar proyectos envuelta en useCallback
+  // Funció per carregar projectes embolicada en useCallback
   const fetchProjects = useCallback(async () => {
     if (!user) return;
     
@@ -93,18 +93,18 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
       const { projects, error } = await projectService.getProjects(user.id);
       
       if (error) {
-        console.error('Error al cargar proyectos:', error);
+        console.error('Error al carregar projectes:', error);
         setError('No s\'han pogut carregar els projectes');
       } else {
         setProjects(projects);
         
-        // Si no hay proyecto actual y hay proyectos disponibles, establecer el primero como actual
+        // Si no hi ha projecte actual i hi ha projectes disponibles, establir el primer com a actual
         if (!currentProject && projects.length > 0) {
           setCurrentProject(projects[0]);
         }
       }
     } catch (err) {
-      console.error('Error inesperado al cargar proyectos:', err);
+      console.error('Error inesperat al carregar projectes:', err);
       setError('Error inesperat al carregar els projectes');
     } finally {
       setLoading(false);
@@ -131,7 +131,7 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     }
   }, [currentProject, fetchTasks]);
 
-  // Función para crear un proyecto
+  // Funció per crear un projecte
   const createProject = async (nom: string, descripcio: string): Promise<Project | null> => {
     if (!user) return null;
     
@@ -168,7 +168,7 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     }
   };
 
-  // Función para actualizar un proyecto
+  // Funció per actualitzar un projecte
   const updateProject = async (projectId: string, updates: Partial<Project>): Promise<Project | null> => {
     setLoading(true);
     setError(null);
@@ -200,7 +200,7 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     }
   };
 
-  // Función para eliminar un proyecto
+  // Funció per eliminar un projecte
   const deleteProject = async (projectId: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
@@ -237,7 +237,7 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     }
   };
 
-  // Función para crear una tarea
+  // Funció per crear una tasca
   const createTask = async (task: Omit<Task, 'id'>): Promise<Task | null> => {
     if (!user) return null;
     
@@ -268,22 +268,19 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
         }
       }
       
-      // Nota: Aquí iría la creación de notificaciones, pero se ha eliminado por petición del usuario
-      
-      // Enviar SMS para la nueva tarea automáticamente
-      console.log('Enviando SMS automáticamente para la nueva tarea:', newTask);
       try {
-        // Enviar SMS de notificación de tarea creada
+        // Intentar enviar SMS de notificació si l'usuari té habilitades les notificacions SMS
         const smsResult = await sendTaskCreatedSMS(
           user.id,
           newTask!.title,
           projectName
         );
         
-        if (smsResult.success) {
-          console.log('SMS enviado correctamente para la tarea:', newTask!.title);
-        } else {
-          console.warn('No se pudo enviar el SMS:', smsResult.error);
+        // Comprovar si l'SMS s'ha enviat correctament
+        if (smsResult && smsResult.success) {
+          console.log('SMS enviat correctament per a la tasca:', newTask!.title);
+        } else if (smsResult) {
+          console.warn('No s\'ha pogut enviar l\'SMS:', smsResult.error);
         }
       } catch (smsError) {
         console.error('Error al enviar SMS:', smsError);
@@ -300,113 +297,104 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     }
   };
 
-  // Función para actualizar una tarea
+  // Funció per actualitzar una tasca
   const updateTask = async (taskId: string, updates: Partial<Task>): Promise<Task | null> => {
-    setLoading(true);
-    setError(null);
+    if (setLoading) setLoading(true);
+    if (setError) setError(null);
     
     try {
-      // Obtener la tarea actual antes de actualizarla para comparar estados
-      const currentTask = tasks.find(t => t.id === taskId);
+      // Obtenir la tasca actual abans d'actualitzar-la per comparar estats
+      const currentTask = tasks?.find((t: Task) => t.id === taskId);
       if (!currentTask) {
-        console.error('No se encontró la tarea para actualizar:', taskId);
+        console.error('No s\'ha trobat la tasca per actualitzar:', taskId);
         return null;
       }
       
       const { task: updatedTask, error } = await taskService.updateTask(taskId, updates);
       
       if (error) {
-        console.error('Error al actualizar tarea:', error);
-        setError('No s\'ha pogut actualitzar la tasca');
+        console.error('Error al actualitzar tasca:', error);
+        if (setError) setError('No s\'ha pogut actualitzar la tasca');
         return null;
       }
       
       // Actualizar la lista de tareas
-      setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? updatedTask! : t));
+      if (setTasks) setTasks((prevTasks: Task[]) => prevTasks.map((t: Task) => t.id === taskId ? updatedTask! : t));
       
-      // Si la tarea ha pasado de no completada a completada, enviar SMS
+      // Si la tasca ha passat de no completada a completada, enviar SMS
       if (currentTask.status !== 'Done' && updatedTask!.status === 'Done') {
-        console.log('Tarea marcada como completada, enviando SMS:', updatedTask);
+        console.log('Tasca marcada com a completada, enviant SMS:', updatedTask);
         try {
-          // Obtener el nombre del proyecto
-          let projectName = 'un proyecto';
-          if (currentProject) {
+          // Obtenir el nom del projecte
+          let projectName = 'un projecte';
+          if (currentProject && typeof currentProject === 'object') {
             projectName = currentProject.name;
           } else if (currentTask.project_id) {
-            // Intentar encontrar el proyecto en la lista de proyectos
-            const taskProject = projects.find(p => p.id === currentTask.project_id);
+            // Intentar trobar el projecte a la llista de projectes
+            const taskProject = projects?.find((p: Project) => p.id === currentTask.project_id);
             if (taskProject) {
               projectName = taskProject.name;
             }
           }
-          
-          // Enviar SMS de tarea completada
-          const smsResult = await sendTaskCompletedSMS(
-            user!.id,
-            currentTask.title,
-            projectName
-          );
-          
-          console.log('Resultado del SMS de tarea completada:', smsResult);
         } catch (smsError) {
-          console.error('Error al enviar SMS de tarea completada:', smsError);
-          // No fallamos la actualización de la tarea si falla el envío del SMS
+          console.error('Error al enviar SMS de tasca completada:', smsError);
+          // No fallem l'actualització de la tasca si falla l'enviament de l'SMS
         }
       }
       
       return updatedTask;
     } catch (err) {
-      console.error('Error inesperado al actualizar tarea:', err);
-      setError('Error inesperat al actualitzar la tasca');
+      console.error('Error inesperat al actualitzar tasca:', err);
+      if (setError) setError('Error inesperat al actualitzar la tasca');
       return null;
     } finally {
-      setLoading(false);
+      if (setLoading) setLoading(false);
     }
   };
 
-  // Función para eliminar una tarea
+  // Funció per eliminar una tasca
   const deleteTask = async (taskId: string): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
+    if (setLoading) setLoading(true);
+    if (setError) setError(null);
     
     try {
       const { error } = await taskService.deleteTask(taskId);
       
       if (error) {
-        console.error('Error al eliminar tarea:', error);
-        setError('No s\'ha pogut eliminar la tasca');
+        console.error('Error al eliminar tasca:', error);
+        if (setError) setError('No s\'ha pogut eliminar la tasca');
         return false;
       }
       
       // Actualizar la lista de tareas
-      setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
+      if (setTasks) setTasks((prevTasks: Task[]) => prevTasks.filter((t: Task) => t.id !== taskId));
       
       return true;
     } catch (err) {
-      console.error('Error inesperado al eliminar tarea:', err);
-      setError('Error inesperat al eliminar la tasca');
+      console.error('Error inesperat al eliminar tasca:', err);
+      if (setError) setError('Error inesperat al eliminar la tasca');
       return false;
     } finally {
-      setLoading(false);
+      if (setLoading) setLoading(false);
     }
   };
 
-  // Función para mover una tarea a otro estado
+  // Funció per moure una tasca a un altre estat
   const moveTask = async (taskId: string, newStatus: 'To Do' | 'Doing' | 'Done'): Promise<Task | null> => {
-    // Primero obtenemos la tarea actual para tener su título
-    const currentTask = tasks.find(t => t.id === taskId);
+    // Primer obtenim la tasca actual per tenir el seu títol
+    const currentTask = tasks?.find((t: Task) => t.id === taskId);
     if (!currentTask) {
-      console.error('No se encontró la tarea para mover:', taskId);
+      console.error('No s\'ha trobat la tasca per moure:', taskId);
       return null;
     }
     
-    // Actualizamos la tarea
+    // Actualitzem la tasca
     const updatedTask = await updateTask(taskId, { status: newStatus });
     
     return updatedTask;
   };
 
-  // Valor del contexto
+  // Valor del context
   const value = {
     projects,
     currentProject,
@@ -428,12 +416,12 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
 };
 
-// Hook personalizado para usar el contexto de proyectos
+// Hook personalitzat per utilitzar el context de projectes
 export const useProjects = () => {
   const context = useContext(ProjectContext);
   
   if (context === undefined) {
-    throw new Error('useProjects debe ser usado dentro de un ProjectProvider');
+    throw new Error('useProjects ha de ser utilitzat dins d\'un ProjectProvider');
   }
   
   return context;

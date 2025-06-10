@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { User } from '../supabase';
 import { authService } from '../services/supabaseService';
-import { scheduleTaskReminders } from '../services/taskReminderService';
 
-// Tipo para el contexto de autenticación
+// Tipus per al context d'autenticació
+// Defineix l'estructura del context que proporciona les funcionalitats d'autenticació
 type AuthContextType = {
   user: User | null;
   loading: boolean;
@@ -13,82 +13,75 @@ type AuthContextType = {
   signOut: () => Promise<void>;
 };
 
-// Crear el contexto
+// Crear el context
+// Inicialitzem el context amb undefined com a valor per defecte
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Props para el proveedor de autenticación
+// Props per al proveïdor d'autenticació
+// Defineix les propietats que accepta el component proveïdor
 type AuthProviderProps = {
   children: ReactNode;
 };
 
-// Proveedor de autenticación
+// Proveïdor d'autenticació
+// Component que gestiona l'estat d'autenticació i proporciona funcions per iniciar sessió, registrar-se i tancar sessió
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Efecto para cargar el usuario actual al iniciar la aplicación
+  // Efecte per carregar l'usuari actual en iniciar l'aplicació
+  // S'executa només una vegada quan es munta el component
   useEffect(() => {
     const loadUser = async () => {
       setLoading(true);
       try {
-        // Verificar si hay una sesión activa
-        const { user, error } = await authService.getCurrentUser();
+        // Verificar si hi ha una sessió activa
+        const { user: authUser, error: authError } = await authService.getCurrentUser();
         
-        if (error) {
-          // Solo registrar el error si no es un error común de sesión
-          if (!(error instanceof Error && error.message === 'Auth session missing!')) {
-            console.error('Error al obtener el usuario actual:', error);
+        if (authError) {
+          // Només registrar l'error si no és un error comú de sessió
+          if (!(authError instanceof Error && authError.message === 'Auth session missing!')) {
+            console.error('Error al obtener el usuario actual:', authError);
           }
           setUser(null);
           setError(null);
-        } else if (user) {
-          // Evitar log excesivo de objetos de usuario
-          setUser(user);
+        } else if (authUser) {
+          // Evitar log excessiu d'objectes d'usuari
+          setUser(authUser);
           setError(null);
-          
-          // Iniciar el servicio de recordatorios de tareas (solo una vez)
-          try {
-            // Usar una variable global para evitar iniciar el servicio múltiples veces
-            const w = window as any;
-            if (!w.__taskRemindersInitialized) {
-              scheduleTaskReminders(user.id);
-              w.__taskRemindersInitialized = true;
-              console.log('Servicio de recordatorios de tareas iniciado para el usuario:', user.id);
-            }
-          } catch (reminderError) {
-            console.error('Error al iniciar el servicio de recordatorios:', reminderError);
-            // No fallamos la carga del usuario si falla el servicio de recordatorios
-          }
         } else {
           setUser(null);
           setError(null);
         }
       } catch (err) {
-        console.error('Error al cargar el usuario:', err);
-        setError('Error al iniciar la aplicación');
+        console.error('Error al carregar l\'usuari:', err);
+        setError('Error al iniciar l\'aplicació');
         setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
-    // Configurar un temporizador para redirigir si la carga tarda demasiado
+    // Configurar un temporitzador per redirigir si la càrrega triga massa
+    // Això evita que l'usuari es quedi en un estat de càrrega indefinit
     const timeoutId = setTimeout(() => {
       if (loading) {
-        console.log('Tiempo de carga excedido, finalizando estado de carga');
+        console.log('Temps de càrrega excedit, finalitzant estat de càrrega');
         setLoading(false);
       }
-    }, 5000); // Aumentado de 2000ms a 5000ms para dar más tiempo
+    }, 5000); // Augmentat de 2000ms a 5000ms per donar més temps
 
     loadUser();
 
-    // Limpiar el temporizador cuando el componente se desmonte
+    // Netejar el temporitzador quan el component es desmunti
+    // Això evita problemes de memòria i errors si el component ja no existeix
     return () => clearTimeout(timeoutId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Eliminada la dependencia [loading] para evitar bucles
+  }, []); // Eliminada la dependència [loading] per evitar bucles
 
-  // Función para iniciar sesión optimizada con useCallback
+  // Funció per iniciar sessió optimitzada amb useCallback
+  // Utilitza el servei d'autenticació per validar les credencials
   const signIn = useCallback(async (email: string, password: string) => {
     setLoading(true);
     setError(null);
@@ -111,7 +104,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Función para registrarse optimizada con useCallback
+  // Funció per registrar-se optimitzada amb useCallback
+  // Crea un nou usuari amb les dades proporcionades
   const signUp = useCallback(async (email: string, password: string, nom: string, phoneNumber?: string) => {
     setLoading(true);
     setError(null);
@@ -134,7 +128,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Función para cerrar sesión optimizada con useCallback
+  // Funció per tancar sessió optimitzada amb useCallback
+  // Tanca la sessió actual i neteja l'estat d'usuari
   const signOut = useCallback(async () => {
     setLoading(true);
     
@@ -154,7 +149,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Valor del contexto memoizado para evitar renderizaciones innecesarias
   const value = useMemo(() => ({
     user,
     loading,
@@ -162,17 +156,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signUp,
     signOut,
-  }), [user, loading, error, signIn, signUp, signOut]);
+  }), [user, loading, error]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Hook personalizado para usar el contexto de autenticación
+// Hook personalitzat per utilitzar el context d'autenticació
+// Simplifica l'accés al context des de qualsevol component
 export const useAuth = () => {
   const context = useContext(AuthContext);
   
   if (context === undefined) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+    throw new Error('useAuth ha de ser utilitzat dins d\'un AuthProvider');
   }
   
   return context;

@@ -1,13 +1,8 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectContext';
-import { useNotifications } from '../contexts/NotificationContext';
-import { useUserPreferences } from '../contexts/UserPreferencesContext';
 import { Navigate } from 'react-router-dom';
 import { Task } from '../supabase';
-import MobileNav from '../components/MobileNav';
-import NotificationCenter from '../components/NotificationCenter';
-import NotificationSettings from '../components/NotificationSettings';
 import KanbanColumn from '../components/KanbanColumn';
 import '../styles/modern.css';
 
@@ -26,11 +21,6 @@ const Dashboard: React.FC = memo(function Dashboard() {
     deleteTask,
     moveTask
   } = useProjects();
-  // Usar los hooks de notificaciones y preferencias
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { notifications, fetchNotifications } = useNotifications();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { preferences } = useUserPreferences();
 
   // Estados para formularios
   const [showNewProject, setShowNewProject] = useState(false);
@@ -41,9 +31,6 @@ const Dashboard: React.FC = memo(function Dashboard() {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDesc, setNewTaskDesc] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
-  
-  // Estado para mostrar configuración de notificaciones
-  const [showSettings, setShowSettings] = useState(false);
   
   // Estado para navegación móvil
   const [activeTab, setActiveTab] = useState<'projects' | 'tasks'>('projects');
@@ -74,21 +61,6 @@ const Dashboard: React.FC = memo(function Dashboard() {
       window.removeEventListener('resize', checkIfMobile);
     };
   }, [checkIfMobile]);
-  
-  // Efecto para cargar notificaciones periódicamente
-  useEffect(() => {
-    // Cargar notificaciones inicialmente
-    fetchNotifications();
-    
-    // Configurar intervalo para actualizar notificaciones cada minuto
-    const intervalId = setInterval(() => {
-      fetchNotifications();
-    }, 60000);
-    
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [fetchNotifications]);
 
   // Si no hay usuario autenticado, redirigir a la página de autenticación
   if (!user) {
@@ -129,9 +101,6 @@ const Dashboard: React.FC = memo(function Dashboard() {
       setNewTaskDesc('');
       setNewTaskDueDate('');
       setShowNewTask(false);
-      
-      // Ya no necesitamos esto porque el SMS se envía desde ProjectContext
-      // cuando se crea una tarea
     }
   };
 
@@ -139,9 +108,6 @@ const Dashboard: React.FC = memo(function Dashboard() {
   const handleMoveTask = async (taskId: string, newStatus: 'To Do' | 'Doing' | 'Done') => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const updatedTask = await moveTask(taskId, newStatus);
-    
-    // Ya no necesitamos esto porque el SMS se envía desde ProjectContext
-    // cuando se marca una tarea como completada
   };
 
   // Manejar la eliminación de una tarea
@@ -171,37 +137,12 @@ const Dashboard: React.FC = memo(function Dashboard() {
         </div>
         <div className="user-info">
           <span>Hola, {user.name}</span>
-          <NotificationCenter />
           <button onClick={signOut} className="btn-logout">Tancar Sessió</button>
         </div>
       </header>
 
-      {/* Navegación móvil */}
-      {isMobile && (
-        <MobileNav 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          onSettingsClick={() => setShowSettings(!showSettings)}
-        />
-      )}
-      
-      {/* Panel de configuración de notificaciones */}
-      {showSettings && (
-        <div className="settings-overlay">
-          <div className="settings-panel">
-            <button 
-              className="close-settings" 
-              onClick={() => setShowSettings(false)}
-            >
-              ✕
-            </button>
-            <NotificationSettings />
-          </div>
-        </div>
-      )}
-      
       <div className="dashboard-content">
-        <aside className={`projects-sidebar ${isMobile && activeTab !== 'projects' ? 'hidden' : ''}`}>
+        <aside className="projects-sidebar">
           <div className="projects-header">
             <h2>Els meus projectes</h2>
             <button 
@@ -256,7 +197,7 @@ const Dashboard: React.FC = memo(function Dashboard() {
           </ul>
         </aside>
 
-        <main className={`tasks-board ${isMobile && activeTab !== 'tasks' ? 'hidden' : ''}`}>
+        <main className="tasks-board">
           {currentProject ? (
             <>
               <div className="board-header">
