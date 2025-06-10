@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+// Component principal del tauler de control que gestiona la lògica de projectes i tasques
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectContext';
 import { Navigate } from 'react-router-dom';
@@ -6,10 +7,11 @@ import { Task } from '../supabase';
 import KanbanColumn from '../components/KanbanColumn';
 import '../styles/modern.css';
 
-// Optimizar el componente Dashboard con React.memo para evitar renderizaciones innecesarias
-const Dashboard: React.FC = memo(function Dashboard() {
+// Informació de l'usuari autenticat
+const Dashboard: React.FC = function Dashboard() {
   const { user, signOut } = useAuth();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  
+  // Informació dels projectes i tasques
   const { 
     projects, 
     currentProject, 
@@ -39,7 +41,6 @@ const Dashboard: React.FC = memo(function Dashboard() {
   const [isMobile, setIsMobile] = useState(false);
   
   // Función para manejar el cambio de tamaño de la ventana, optimizada con useCallback
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleResize = useCallback(() => {
     setIsMobile(window.innerWidth < 768);
   }, []);
@@ -106,7 +107,6 @@ const Dashboard: React.FC = memo(function Dashboard() {
 
   // Manejar el cambio de estado de una tarea
   const handleMoveTask = async (taskId: string, newStatus: 'To Do' | 'Doing' | 'Done') => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const updatedTask = await moveTask(taskId, newStatus);
   };
 
@@ -273,6 +273,6 @@ const Dashboard: React.FC = memo(function Dashboard() {
       </div>
     </div>
   );
-});
+};
 
 export default Dashboard;

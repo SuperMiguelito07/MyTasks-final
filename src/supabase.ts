@@ -1,13 +1,13 @@
+// Configuració de Supabase i definició de tipus utilitzats a l'aplicació
 import { createClient } from '@supabase/supabase-js';
 
-// Utilizamos las variables de entorno para las credenciales de Supabase
+// Crea una instància de Supabase client utilitzant les variables d'entorn
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
-
-// Creamos el cliente de Supabase
+// Utilitzem les variables de entorno per les credenciales de Supabase
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Tipos para la base de datos
+// Definició de tipus per a la base de dades
 export type User = {
   id: string;
   name: string;
@@ -35,14 +35,4 @@ export type Task = {
   due_date: string | null;
   assigned_to: string | null;
   is_archived?: boolean;
-};
-
-export type Notification = {
-  id: string;
-  user_id: string;
-  message: string;
-  read: boolean;
-  created_at: string;
-  related_task_id?: string | null;
-  related_project_id?: string | null;
 };

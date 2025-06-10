@@ -1,18 +1,16 @@
-import { supabase, User, Project, Task, Notification } from '../supabase';
+import { supabase, User, Project, Task } from '../supabase';
 
-// Servicios de autenticación
 export const authService = {
-  // Registrar un nuevo usuario
+  // Registra un nou usuari amb el correu electrònic, contrasenya i nom proporcionats
   async signUp(email: string, password: string, name: string, phoneNumber?: string): Promise<{ user: User | null; error: any }> {
     try {
-      // Registrar el usuario en la autenticación de Supabase
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name: name, // Pasar el nombre como metadato para que el trigger lo use
-            phone_number: phoneNumber || null // Pasar el número de teléfono como metadato
+            name: name, 
+            phone_number: phoneNumber || null 
           }
         }
       });
@@ -26,11 +24,9 @@ export const authService = {
         return { user: null, error: 'No se pudo crear el usuario' };
       }
 
-      // El trigger de Supabase debería crear automáticamente el registro en la tabla users
-      // Esperamos un momento y luego intentamos obtener el usuario
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Obtener el perfil del usuario
+      // Obté el perfil d'usuari des de la base de dades
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
@@ -39,7 +35,6 @@ export const authService = {
 
       if (userError) {
         console.error('Error al obtener perfil de usuario:', userError);
-        // Aún así devolvemos el usuario autenticado
         return { 
           user: {
             id: authData.user.id,
@@ -52,7 +47,7 @@ export const authService = {
         };
       }
 
-      // Si el usuario no existe en la tabla users a pesar del trigger, lo creamos manualmente
+      // Si el perfil d'usuari no existeix, crea un de nou
       if (!userData) {
         try {
           const { data: newUserData, error: profileError } = await supabase
@@ -106,7 +101,7 @@ export const authService = {
     }
   },
 
-  // Iniciar sesión
+  // Inicia sessió amb el correu electrònic i contrasenya proporcionats
   async signIn(email: string, password: string): Promise<{ user: User | null; error: any }> {
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -122,7 +117,7 @@ export const authService = {
         return { user: null, error: 'No se pudo iniciar sesión' };
       }
 
-      // Obtener el perfil del usuario
+      // Obté el perfil d'usuari des de la base de dades
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
@@ -143,7 +138,7 @@ export const authService = {
         };
       }
 
-      // Si el usuario no existe en la tabla users, lo creamos
+      // Si el perfil d'usuari no existeix, crea un de nou
       if (!userData) {
         const { data: newUserData, error: newUserError } = await supabase
           .from('users')
@@ -181,13 +176,13 @@ export const authService = {
     }
   },
 
-  // Cerrar sesión
+  // Tanca la sessió de l'usuari actual
   async signOut(): Promise<{ error: any }> {
     const { error } = await supabase.auth.signOut();
     return { error };
   },
 
-  // Obtener el usuario actual
+  // Obté l'usuari actual des de l'autenticació
   async getCurrentUser(): Promise<{ user: User | null; error: any }> {
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -197,6 +192,7 @@ export const authService = {
         if (authError.name === 'AuthSessionMissingError') {
           return { user: null, error: authError };
         }
+        console.error('Error al obtener usuario actual:', authError);
         return { user: null, error: authError };
       }
 
@@ -289,9 +285,9 @@ export const authService = {
   }
 };
 
-// Servicios de proyectos
+// Servei de projectes: gestiona la creació, obtenció, actualització i eliminació de projectes
 export const projectService = {
-  // Obtener todos los proyectos de un usuario
+  // Obté tots els projectes d'un usuari
   async getProjects(userId: string): Promise<{ projects: Project[]; error: any }> {
     const { data, error } = await supabase
       .from('projects')
@@ -303,7 +299,7 @@ export const projectService = {
     return { projects: data || [], error };
   },
 
-  // Obtener un proyecto por ID
+  // Obté un projecte per ID
   async getProjectById(projectId: string): Promise<{ project: Project | null; error: any }> {
     const { data, error } = await supabase
       .from('projects')
@@ -314,18 +310,18 @@ export const projectService = {
     return { project: data, error };
   },
 
-  // Crear un nuevo proyecto
+  // Crea un nou projecte
   async createProject(project: Omit<Project, 'id'>): Promise<{ project: Project | null; error: any }> {
     const { data, error } = await supabase
       .from('projects')
-      .insert([project])
+      .insert(project)
       .select()
       .single();
     
     return { project: data, error };
   },
 
-  // Actualizar un proyecto
+  // Actualitza un projecte
   async updateProject(projectId: string, updates: Partial<Project>): Promise<{ project: Project | null; error: any }> {
     const { data, error } = await supabase
       .from('projects')
@@ -337,7 +333,7 @@ export const projectService = {
     return { project: data, error };
   },
 
-  // Eliminar un proyecto
+  // Elimina un projecte
   async deleteProject(projectId: string): Promise<{ error: any }> {
     const { error } = await supabase
       .from('projects')
@@ -348,9 +344,9 @@ export const projectService = {
   }
 };
 
-// Servicios de tareas
+// Servei de tasques: gestiona la creació, obtenció, actualització i eliminació de tasques
 export const taskService = {
-  // Obtener todas las tareas de un proyecto
+  // Obté totes les tasques d'un projecte
   async getTasks(projectId: string): Promise<{ tasks: Task[]; error: any }> {
     const { data, error } = await supabase
       .from('tasks')
@@ -362,7 +358,7 @@ export const taskService = {
     return { tasks: data || [], error };
   },
 
-  // Obtener una tarea por ID
+  // Obté una tasca per ID
   async getTaskById(taskId: string): Promise<{ task: Task | null; error: any }> {
     const { data, error } = await supabase
       .from('tasks')
@@ -373,18 +369,18 @@ export const taskService = {
     return { task: data, error };
   },
 
-  // Crear una nueva tarea
+  // Crea una nova tasca
   async createTask(task: Omit<Task, 'id'>): Promise<{ task: Task | null; error: any }> {
     const { data, error } = await supabase
       .from('tasks')
-      .insert([task])
+      .insert(task)
       .select()
       .single();
     
     return { task: data, error };
   },
 
-  // Actualizar una tarea
+  // Actualitza una tasca
   async updateTask(taskId: string, updates: Partial<Task>): Promise<{ task: Task | null; error: any }> {
     const { data, error } = await supabase
       .from('tasks')
@@ -396,7 +392,7 @@ export const taskService = {
     return { task: data, error };
   },
 
-  // Eliminar una tarea
+  // Elimina una tasca
   async deleteTask(taskId: string): Promise<{ error: any }> {
     const { error } = await supabase
       .from('tasks')
@@ -407,10 +403,10 @@ export const taskService = {
   }
 };
 
-// Servicios de notificaciones
+// Servei de notificacions: gestiona la creació, obtenció i eliminació de notificacions
 export const notificationService = {
-  // Obtener todas las notificaciones de un usuario
-  async getNotifications(userId: string): Promise<{ notifications: Notification[]; error: any }> {
+  // Obté totes les notificacions d'un usuari
+  async getNotifications(userId: string): Promise<{ notifications: any[]; error: any }> {
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -420,11 +416,11 @@ export const notificationService = {
     return { notifications: data || [], error };
   },
 
-  // Marcar una notificación como leída
-  async markAsRead(notificationId: string): Promise<{ notification: Notification | null; error: any }> {
+  // Marca una notificació com a llegida
+  async markAsRead(notificationId: string): Promise<{ notification: any | null; error: any }> {
     const { data, error } = await supabase
       .from('notifications')
-      .update({ read: true })
+      .update({ is_read: true })
       .eq('id', notificationId)
       .select()
       .single();
@@ -432,7 +428,7 @@ export const notificationService = {
     return { notification: data, error };
   },
 
-  // Eliminar una notificación
+  // Elimina una notificació
   async deleteNotification(notificationId: string): Promise<{ error: any }> {
     const { error } = await supabase
       .from('notifications')
@@ -442,11 +438,11 @@ export const notificationService = {
     return { error };
   },
 
-  // Crear una nueva notificación
-  async createNotification(notification: Omit<Notification, 'id'>): Promise<{ notification: Notification | null; error: any }> {
+  // Crea una nova notificació
+  async createNotification(notification: any): Promise<{ notification: any | null; error: any }> {
     const { data, error } = await supabase
       .from('notifications')
-      .insert([notification])
+      .insert(notification)
       .select()
       .single();
     
@@ -454,9 +450,9 @@ export const notificationService = {
   }
 };
 
-// Servicios de preferencias de usuario
+// Servei de preferències d'usuari: gestiona la creació i actualització de preferències d'usuari
 export const userPreferencesService = {
-  // Obtener las preferencias de un usuario
+  // Obté les preferències d'un usuari
   async getUserPreferences(userId: string): Promise<{ preferences: any; error: any }> {
     const { data, error } = await supabase
       .from('user_preferences')
@@ -467,7 +463,7 @@ export const userPreferencesService = {
     return { preferences: data, error };
   },
 
-  // Actualizar las preferencias de un usuario
+  // Actualitza les preferències d'un usuari
   async updateUserPreferences(userId: string, updates: any): Promise<{ preferences: any; error: any }> {
     // Primero verificamos si ya existen preferencias para este usuario
     const { data: existingPrefs } = await supabase

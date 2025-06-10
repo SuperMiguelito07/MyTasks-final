@@ -1,19 +1,16 @@
+// Arxiu d'entrada principal que renderitza l'aplicació React
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 
+// Renderitza el component principal App a l'element HTML amb id 'root'
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
+
 root.render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-// Eliminada la importación de reportWebVitals
-// Si deseas medir el rendimiento, puedes agregar tu propio código aquí

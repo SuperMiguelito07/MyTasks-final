@@ -1,7 +1,8 @@
+// Arxiu principal que configura les rutes i el context de l'aplicació
 import React, { lazy, Suspense, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import './styles/mobile.css'; // Importar estils per a dispositius mòbils
+import './styles/mobile.css'; 
 import { AuthProvider } from './contexts/AuthContext';
 import { ProjectProvider } from './contexts/ProjectContext';
 
@@ -18,7 +19,9 @@ const App = React.memo(function App() {
   // Memoritzar les rutes per evitar re-renderitzacions innecessàries
   const routes = useMemo(() => (
     <Routes>
+      {/* Ruta per a la pàgina d'autenticació */}
       <Route path="/auth" element={<Auth />} />
+      {/* Ruta per al tauler de control */}
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/" element={<Navigate to="/auth" />} />
     </Routes>
@@ -29,7 +32,7 @@ const App = React.memo(function App() {
       <AuthProvider>
         <ProjectProvider>
           <div className="App">
-            <Suspense fallback={null}>
+            <Suspense fallback={<div>Loading...</div>}>
               {routes}
             </Suspense>
           </div>
